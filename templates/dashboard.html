@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Competitor Monitor</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b36;
+    --text: #e6e8eb;
+    --muted: #8a92a3;
+    --accent: #5b8cff;
+    --green: #3ecf8e;
+    --red: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+  }
+  header p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  main {
+    padding: 24px 32px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  section {
+    margin-bottom: 40px;
+  }
+  section h2 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th, td {
+    padding: 10px 16px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:not(:last-child) td {
+    border-bottom: 1px solid var(--border);
+  }
+  td.title, td.url {
+    white-space: normal;
+    max-width: 420px;
+  }
+  .empty {
+    color: var(--muted);
+    padding: 20px 16px;
+    font-size: 0.9rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .badge.available { background: rgba(62, 207, 142, 0.15); color: var(--green); }
+  .badge.unavailable { background: rgba(255, 107, 107, 0.15); color: var(--red); }
+  .change.increase { color: var(--red); font-weight: 600; }
+  .change.decrease { color: var(--green); font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Competitor Monitor</h1>
+  <p>Vista local de MySQL &mdash; se actualiza al recargar la pagina, no es en tiempo real</p>
+</header>
+<main>
+
+  <section>
+    <h2>Competidores ({{ competitors|length }})</h2>
+    <div class="panel">
+      {% if competitors %}
+      <table>
+        <thead>
+          <tr><th>Nombre</th><th>Sitio web</th><th>Pais</th><th>Productos</th><th>Ultimo crawl</th></tr>
+        </thead>
+        <tbody>
+          {% for c in competitors %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td class="url"><a href="{{ c.website_url }}" target="_blank" rel="noopener">{{ c.website_url }}</a></td>
+            <td>{{ c.country }}</td>
+            <td>{{ c.total_products }}</td>
+            <td>{{ c.last_crawled or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Todavia no hay competidores. Anade uno con db.add_competitor(...).</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <h2>Productos anadidos recientemente (ultimos 7 dias)</h2>
+    <div class="panel">
+      {% if new_products %}
+      <table>
+        <thead>
+          <tr><th>Competidor</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Visto por primera vez</th></tr>
+        </thead>
+        <tbody>
+          {% for p in new_products %}
+          <tr>
+            <td>{{ p.competitor }}</td>
+            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+            <td>{% if p.price is not none %}&euro;{{ "%.2f"|format(p.price) }}{% else %}-{% endif %}</td>
+            <td>
+              {% if p.available %}
+                <span class="badge available">Disponible</span>
+              {% else %}
+                <span class="badge unavailable">Agotado</span>
+              {% endif %}
+            </td>
+            <td>{{ p.first_seen }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Ningun producto nuevo en los ultimos 7 dias.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <h2>Cambios de precio (ultimos 7 dias)</h2>
+    <div class="panel">
+      {% if events %}
+      <table>
+        <thead>
+          <tr><th>Competidor</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Cambio</th><th>Detectado</th></tr>
+        </thead>
+        <tbody>
+          {% for e in events %}
+          <tr>
+            <td>{{ e.competitor }}</td>
+            <td class="title">{{ e.title }}</td>
+            <td>&euro;{{ "%.2f"|format(e.old_price) }}</td>
+            <td>&euro;{{ "%.2f"|format(e.new_price) }}</td>
+            <td class="change {{ e.event_type }}">{{ "%+.1f"|format(e.percent_change) }}%</td>
+            <td>{{ e.detected_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Sin cambios de precio en los ultimos 7 dias.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <h2>Catalogo actual ({{ products|length }} productos)</h2>
+    <div class="panel">
+      {% if products %}
+      <table>
+        <thead>
+          <tr><th>Competidor</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td>{{ p.competitor }}</td>
+            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+            <td>&euro;{{ "%.2f"|format(p.price) }}</td>
+            <td>
+              {% if p.available %}
+                <span class="badge available">Disponible</span>
+              {% else %}
+                <span class="badge unavailable">Agotado</span>
+              {% endif %}
+            </td>
+            <td>{{ p.captured_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Sin productos todavia. Corre <code>python main.py</code> primero.</div>
+      {% endif %}
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
