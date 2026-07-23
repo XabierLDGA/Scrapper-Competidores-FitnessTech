@@ -28,6 +28,8 @@ def index():
         competitors=db.get_competitor_stats(),
         new_products=db.get_recently_added_products(hours=24),
         events=db.get_recent_price_events(hours=24),
+        availability_events=db.get_recent_availability_events(hours=24),
+        removed_products=db.get_recently_removed_products(hours=24),
         products=db.get_latest_snapshots(),
     )
 

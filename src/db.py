@@ -66,6 +66,8 @@ class Database:
                     ON DUPLICATE KEY UPDATE
                         last_seen = CURDATE(),
                         title = VALUES(title),
+                        status = 'active',
+                        removed_at = NULL,
                         id = LAST_INSERT_ID(id)
                 """, (competitor_id, external_id, url, title))
                 conn.commit()
@@ -129,6 +131,75 @@ class Database:
                 """, (product_id, event_type, old_price, new_price, percent_change))
                 conn.commit()
                 logger.info(f"Evento de precio creado: {event_type} {percent_change:.1f}%")
+            finally:
+                cursor.close()
+
+    def create_availability_event(self, product_id: int, was_available: bool, now_available: bool):
+        """Persiste un cambio de disponibilidad detectado por ChangeDetector."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    INSERT INTO availability_events (product_id, was_available, now_available)
+                    VALUES (%s, %s, %s)
+                """, (product_id, was_available, now_available))
+                conn.commit()
+                logger.info(f"Evento de disponibilidad creado: {was_available} -> {now_available}")
+            finally:
+                cursor.close()
+
+    def get_recent_availability_events(self, hours: int = 24) -> list[dict]:
+        """Cambios de disponibilidad de las ultimas N horas, para el dashboard."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                cursor.execute("""
+                    SELECT ae.*, p.title, p.url, c.name AS competitor
+                    FROM availability_events ae
+                    JOIN products p ON ae.product_id = p.id
+                    JOIN competitors c ON p.competitor_id = c.id
+                    WHERE ae.detected_at >= DATE_SUB(NOW(), INTERVAL %s HOUR)
+                    ORDER BY ae.detected_at DESC
+                """, (hours,))
+                return cursor.fetchall()
+            finally:
+                cursor.close()
+
+    def mark_missing_products_removed(self, competitor_id: int):
+        """Marca como 'removed' los productos activos de un competidor que no
+        se han visto en el crawl de hoy (su last_seen no se actualizo hoy).
+
+        Se llama una vez por competidor, y solo tras procesar con exito su
+        catalogo, para no marcar productos como eliminados por un fallo
+        parcial del crawl.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    UPDATE products
+                    SET status = 'removed', removed_at = NOW()
+                    WHERE competitor_id = %s AND status = 'active' AND last_seen < CURDATE()
+                """, (competitor_id,))
+                conn.commit()
+                if cursor.rowcount:
+                    logger.info(f"{cursor.rowcount} productos marcados como eliminados")
+            finally:
+                cursor.close()
+
+    def get_recently_removed_products(self, hours: int = 24) -> list[dict]:
+        """Productos marcados como eliminados en las ultimas N horas, para el dashboard."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                cursor.execute("""
+                    SELECT c.name AS competitor, p.title, p.url, p.last_seen, p.removed_at
+                    FROM products p
+                    JOIN competitors c ON c.id = p.competitor_id
+                    WHERE p.status = 'removed' AND p.removed_at >= DATE_SUB(NOW(), INTERVAL %s HOUR)
+                    ORDER BY p.removed_at DESC
+                """, (hours,))
+                return cursor.fetchall()
             finally:
                 cursor.close()
 
@@ -238,7 +309,11 @@ class Database:
                 cursor.close()
 
     def get_latest_snapshots(self) -> list[dict]:
-        """Ultimo snapshot de cada producto (catalogo actual), para el dashboard."""
+        """Ultimo snapshot de cada producto activo (catalogo actual), para el dashboard.
+
+        Los productos marcados como 'removed' se excluyen: dejaron de verse
+        en el catalogo del competidor y se muestran aparte, no como vigentes.
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
             try:
@@ -251,6 +326,7 @@ class Database:
                         FROM products p
                         JOIN competitors c ON c.id = p.competitor_id
                         JOIN product_snapshots s ON s.product_id = p.id
+                        WHERE p.status = 'active'
                     ) ranked
                     WHERE rn = 1
                     ORDER BY competitor, title

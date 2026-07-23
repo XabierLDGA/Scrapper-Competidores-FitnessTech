@@ -81,6 +81,11 @@ async def process_product(db: Database, detector: ChangeDetector, notifier: Noti
     availability_change = detector.detect_availability_change(old_snapshot, product)
     if availability_change:
         logger.info(f"    [disponibilidad] {availability_change}")
+        db.create_availability_event(
+            product_id=product_id,
+            was_available=availability_change["was_available"],
+            now_available=availability_change["now_available"],
+        )
 
 
 async def main():
@@ -123,6 +128,11 @@ async def main():
                                            competitor["id"], competitor["name"])
                 except Exception:
                     logger.exception(f"    Error procesando producto {product.get('title', 'Unknown')}")
+
+            # Solo se marcan eliminados si el catalogo se descargo con exito
+            # (raw_products no vacio, arriba); asi un fallo parcial del
+            # crawler no borra productos que en realidad siguen a la venta.
+            db.mark_missing_products_removed(competitor["id"])
 
         except Exception:
             logger.exception(f"  Error crawleando {competitor['name']}")

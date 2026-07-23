@@ -193,6 +193,69 @@
   </section>
 
   <section>
+    <h2>Cambios de disponibilidad (ultimas 24 horas)</h2>
+    <div class="panel">
+      {% if availability_events %}
+      <table>
+        <thead>
+          <tr><th>Competidor</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr>
+        </thead>
+        <tbody>
+          {% for a in availability_events %}
+          <tr>
+            <td>{{ a.competitor }}</td>
+            <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
+            <td>
+              {% if a.was_available %}
+                <span class="badge available">Disponible</span>
+              {% else %}
+                <span class="badge unavailable">Agotado</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if a.now_available %}
+                <span class="badge available">Disponible</span>
+              {% else %}
+                <span class="badge unavailable">Agotado</span>
+              {% endif %}
+            </td>
+            <td>{{ a.detected_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Sin cambios de disponibilidad en las ultimas 24 horas.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <h2>Productos eliminados (ultimas 24 horas)</h2>
+    <div class="panel">
+      {% if removed_products %}
+      <table>
+        <thead>
+          <tr><th>Competidor</th><th>Producto</th><th>Ultimo visto</th><th>Eliminado</th></tr>
+        </thead>
+        <tbody>
+          {% for r in removed_products %}
+          <tr>
+            <td>{{ r.competitor }}</td>
+            <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
+            <td>{{ r.last_seen }}</td>
+            <td>{{ r.removed_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Ningun producto eliminado en las ultimas 24 horas.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
     <h2>Catalogo actual ({{ products|length }} productos)</h2>
     <div class="panel">
       {% if products %}
