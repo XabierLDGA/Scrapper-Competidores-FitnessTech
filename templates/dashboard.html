@@ -134,7 +134,7 @@
   </section>
 
   <section>
-    <h2>Productos anadidos recientemente (ultimos 7 dias)</h2>
+    <h2>Productos anadidos recientemente (ultimas 24 horas)</h2>
     <div class="panel">
       {% if new_products %}
       <table>
@@ -160,13 +160,13 @@
         </tbody>
       </table>
       {% else %}
-      <div class="empty">Ningun producto nuevo en los ultimos 7 dias.</div>
+      <div class="empty">Ningun producto nuevo en las ultimas 24 horas.</div>
       {% endif %}
     </div>
   </section>
 
   <section>
-    <h2>Cambios de precio (ultimos 7 dias)</h2>
+    <h2>Cambios de precio (ultimas 24 horas)</h2>
     <div class="panel">
       {% if events %}
       <table>
@@ -187,7 +187,7 @@
         </tbody>
       </table>
       {% else %}
-      <div class="empty">Sin cambios de precio en los ultimos 7 dias.</div>
+      <div class="empty">Sin cambios de precio en las ultimas 24 horas.</div>
       {% endif %}
     </div>
   </section>

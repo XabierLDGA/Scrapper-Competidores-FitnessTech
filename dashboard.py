@@ -26,8 +26,8 @@ def index():
     return render_template(
         "dashboard.html",
         competitors=db.get_competitor_stats(),
-        new_products=db.get_recently_added_products(days=7),
-        events=db.get_recent_price_events(days=7),
+        new_products=db.get_recently_added_products(hours=24),
+        events=db.get_recent_price_events(hours=24),
         products=db.get_latest_snapshots(),
     )
 

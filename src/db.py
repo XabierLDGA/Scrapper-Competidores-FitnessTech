@@ -263,8 +263,8 @@ class Database:
             finally:
                 cursor.close()
 
-    def get_recent_price_events(self, days: int = 7) -> list[dict]:
-        """Eventos de precio de los ultimos N dias, notificados o no, para el dashboard."""
+    def get_recent_price_events(self, hours: int = 24) -> list[dict]:
+        """Eventos de precio de las ultimas N horas, notificados o no, para el dashboard."""
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
             try:
@@ -273,9 +273,9 @@ class Database:
                     FROM price_events pe
                     JOIN products p ON pe.product_id = p.id
                     JOIN competitors c ON p.competitor_id = c.id
-                    WHERE pe.detected_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                    WHERE pe.detected_at >= DATE_SUB(NOW(), INTERVAL %s HOUR)
                     ORDER BY pe.detected_at DESC
-                """, (days,))
+                """, (hours,))
                 rows = cursor.fetchall()
                 for row in rows:
                     row["old_price"] = _to_float(row.get("old_price"))
@@ -285,8 +285,8 @@ class Database:
             finally:
                 cursor.close()
 
-    def get_recently_added_products(self, days: int = 7) -> list[dict]:
-        """Productos vistos por primera vez en los ultimos N dias, con el
+    def get_recently_added_products(self, hours: int = 24) -> list[dict]:
+        """Productos vistos por primera vez en las ultimas N horas, con el
         precio del dia en que se descubrieron, para el dashboard."""
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
@@ -298,9 +298,9 @@ class Database:
                     JOIN competitors c ON c.id = p.competitor_id
                     LEFT JOIN product_snapshots s
                         ON s.product_id = p.id AND s.captured_at = p.first_seen
-                    WHERE p.first_seen >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                    WHERE p.first_seen >= DATE_SUB(NOW(), INTERVAL %s HOUR)
                     ORDER BY p.first_seen DESC, c.name, p.title
-                """, (days,))
+                """, (hours,))
                 rows = cursor.fetchall()
                 for row in rows:
                     row["price"] = _to_float(row.get("price"))
