@@ -1,13 +1,19 @@
+import asyncio
+import logging
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, render_template
+from flask import Flask, flash, redirect, render_template, url_for
 
+import main as crawl_main
 from src.db import Database
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-local-only")
 
 
 def get_db() -> Database:
@@ -32,6 +38,28 @@ def index():
         removed_products=db.get_recently_removed_products(hours=24),
         products=db.get_latest_snapshots(),
     )
+
+
+@app.route("/crawl", methods=["POST"])
+def trigger_crawl():
+    try:
+        summary = asyncio.run(crawl_main.main())
+    except Exception:
+        logger.exception("Error ejecutando el crawl")
+        flash("Error al ejecutar el crawl. Revisa los logs de la consola.", "error")
+        return redirect(url_for("index"))
+
+    message = (
+        f"Crawl completado: {summary['new_products']} productos nuevos, "
+        f"{summary['pending_events']} eventos pendientes."
+    )
+    if summary["errors"]:
+        message += f" Fallo al crawlear: {', '.join(summary['errors'])}."
+        flash(message, "error")
+    else:
+        flash(message, "success")
+
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

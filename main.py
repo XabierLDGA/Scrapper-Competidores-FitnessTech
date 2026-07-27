@@ -88,7 +88,7 @@ async def process_product(db: Database, detector: ChangeDetector, notifier: Noti
         )
 
 
-async def main():
+async def main() -> dict:
     db = Database(
         host=os.getenv("DB_HOST", "localhost"),
         user=os.getenv("DB_USER", "root"),
@@ -109,8 +109,9 @@ async def main():
     if not competitors:
         logger.warning("No hay competidores configurados en la BD")
         logger.info("Anade competidores con db.add_competitor(...)")
-        return
+        return {"new_products": 0, "pending_events": 0, "errors": []}
 
+    errors = []
     for competitor in competitors:
         logger.info(f"\nCrawleando: {competitor['name']}")
         try:
@@ -136,6 +137,7 @@ async def main():
 
         except Exception:
             logger.exception(f"  Error crawleando {competitor['name']}")
+            errors.append(competitor["name"])
 
     # El digest se construye leyendo el estado real de la BD (no listas en
     # memoria), asi que sigue siendo correcto aunque el crawl haya fallado
@@ -152,6 +154,12 @@ async def main():
     if new_products or pending_events:
         notifier.send_daily_digest(new_products, pending_events)
         db.mark_events_notified([event["id"] for event in pending_events])
+
+    return {
+        "new_products": len(new_products),
+        "pending_events": len(pending_events),
+        "errors": errors,
+    }
 
 
 if __name__ == "__main__":
