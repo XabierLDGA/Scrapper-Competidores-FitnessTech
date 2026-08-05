@@ -19,8 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 async def crawl_competitor_products(crawler: Crawler, competitor: dict) -> tuple[list[dict], str]:
-    """Intenta el endpoint Shopify /products.json; si no hay datos, cae a
-    scraping HTML generico sobre website_url."""
+    """Elige la estrategia de descarga segun el competidor: Magento detras
+    de Cloudflare (Playwright), Shopify (/products.json), o HTML generico
+    como ultimo recurso."""
+    if competitor.get("platform") == "magento":
+        products = await crawler.crawl_magento_categories(competitor["website_url"])
+        return products, "magento"
+
     if competitor.get("product_api_url"):
         products = await crawler.crawl_shopify_products(competitor["product_api_url"])
         if products:
@@ -113,32 +118,38 @@ async def main() -> dict:
         return {"new_products": 0, "pending_events": 0, "errors": []}
 
     errors = []
-    for competitor in competitors:
-        logger.info(f"\nCrawleando: {competitor['name']}")
-        try:
-            raw_products, source = await crawl_competitor_products(crawler, competitor)
-            if not raw_products:
-                logger.warning("  No se pudieron obtener productos")
-                continue
+    try:
+        for competitor in competitors:
+            logger.info(f"\nCrawleando: {competitor['name']}")
+            try:
+                raw_products, source = await crawl_competitor_products(crawler, competitor)
+                if not raw_products:
+                    logger.warning("  No se pudieron obtener productos")
+                    continue
 
-            logger.info(f"  {len(raw_products)} productos descargados ({source})")
-            normalized = normalizer.batch_normalize(raw_products, source=source)
+                logger.info(f"  {len(raw_products)} productos descargados ({source})")
+                normalized = normalizer.batch_normalize(raw_products, source=source)
 
-            for product in normalized:
-                try:
-                    await process_product(db, detector, notifier, product,
-                                           competitor["id"], competitor["name"])
-                except Exception:
-                    logger.exception(f"    Error procesando producto {product.get('title', 'Unknown')}")
+                for product in normalized:
+                    try:
+                        await process_product(db, detector, notifier, product,
+                                               competitor["id"], competitor["name"])
+                    except Exception:
+                        logger.exception(f"    Error procesando producto {product.get('title', 'Unknown')}")
 
-            # Solo se marcan eliminados si el catalogo se descargo con exito
-            # (raw_products no vacio, arriba); asi un fallo parcial del
-            # crawler no borra productos que en realidad siguen a la venta.
-            db.mark_missing_products_removed(competitor["id"])
+                # Solo se marcan eliminados si el catalogo se descargo con exito
+                # (raw_products no vacio, arriba); asi un fallo parcial del
+                # crawler no borra productos que en realidad siguen a la venta.
+                db.mark_missing_products_removed(competitor["id"])
 
-        except Exception:
-            logger.exception(f"  Error crawleando {competitor['name']}")
-            errors.append(competitor["name"])
+            except Exception:
+                logger.exception(f"  Error crawleando {competitor['name']}")
+                errors.append(competitor["name"])
+    finally:
+        # Cierra Chromium si crawl_magento_categories llego a abrirlo; no
+        # hace nada si ningun competidor lo necesito (close() es segura de
+        # llamar sin haberse usado fetch_rendered nunca).
+        await crawler.close()
 
     # El digest se construye leyendo el estado real de la BD (no listas en
     # memoria), asi que sigue siendo correcto aunque el crawl haya fallado
