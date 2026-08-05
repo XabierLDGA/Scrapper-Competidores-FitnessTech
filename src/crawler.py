@@ -4,8 +4,10 @@ import json
 import logging
 import re
 from typing import Optional
+from urllib.parse import urljoin, urlparse
 
 import httpx
+from playwright.async_api import Browser, Playwright, async_playwright
 from selectolax.parser import HTMLParser
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,15 @@ class Crawler:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Competitor Monitor v1.0) +https://yourcompany.com/bot"
         }
+        # Sitios detras de Cloudflare bloquean httpx por huella TLS (JA3)
+        # aunque se le ponga un User-Agent de navegador; hace falta un
+        # navegador real. Este UA es el que se ha verificado que pasa.
+        self.browser_user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        )
+        self._playwright: Optional[Playwright] = None
+        self._browser: Optional[Browser] = None
 
     async def fetch(self, url: str) -> Optional[str]:
         """Descarga una URL con reintentos."""
@@ -185,3 +196,57 @@ class Crawler:
             re.IGNORECASE,
         )
         return match.group() if match else None
+
+    async def _ensure_browser(self) -> Browser:
+        if self._browser is None:
+            self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.launch(headless=True)
+        return self._browser
+
+    async def fetch_rendered(self, url: str) -> Optional[str]:
+        """Descarga una URL con un navegador Chromium real (Playwright).
+
+        Necesario para sitios detras de Cloudflare que bloquean por huella
+        TLS: Cloudflare distingue el cliente por como negocia TLS, no solo
+        por las cabeceras HTTP, asi que httpx recibe 403 aunque se le ponga
+        un User-Agent de navegador (verificado en vivo contra el sitio).
+        El navegador se lanza una vez (bajo demanda) y se reutiliza entre
+        llamadas: arrancar Chromium en cada pagina seria demasiado lento.
+        """
+        browser = await self._ensure_browser()
+        for attempt in range(3):
+            page = None
+            try:
+                page = await browser.new_page(user_agent=self.browser_user_agent)
+                response = await page.goto(
+                    url, wait_until="domcontentloaded", timeout=self.timeout * 1000
+                )
+                if response is None or response.status >= 400:
+                    status = response.status if response else "sin respuesta"
+                    raise RuntimeError(f"HTTP {status}")
+                content = await page.content()
+                await asyncio.sleep(self.rate_limit)
+                return content
+            except Exception as e:
+                logger.warning(f"Intento {attempt + 1} fallido (Playwright) para {url}: {e}")
+                if attempt == 2:
+                    logger.error(f"No se pudo renderizar {url}")
+                    return None
+                await asyncio.sleep(2 ** attempt)
+            finally:
+                if page is not None:
+                    await page.close()
+        return None
+
+    async def close(self):
+        """Cierra el navegador Playwright si se llego a abrir.
+
+        Debe llamarse una vez al terminar todo el crawl (no por competidor),
+        para no dejar procesos de Chromium huerfanos.
+        """
+        if self._browser is not None:
+            await self._browser.close()
+            self._browser = None
+        if self._playwright is not None:
+            await self._playwright.stop()
+            self._playwright = None
