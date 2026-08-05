@@ -2,8 +2,9 @@
 
 Sistema de monitorizacion automatica de competidores en fitnesstech usando MySQL.
 
-Pensado para correr **en local primero** y, cuando este validado, activar el
-workflow de GitHub Actions para producción.
+Se puede correr en local con Python + venv (para desarrollo) o con Docker
+Compose (para desplegar en un VPS o servidor propio, ver
+[Despliegue con Docker](#despliegue-con-docker)).
 
 ## Instalacion local
 
@@ -104,18 +105,65 @@ mocks/datos en memoria). No hay tests de integracion contra una BD real
 todavia; si el proyecto crece, conviene anadir un contenedor MySQL de test
 (docker-compose o `pytest` con una fixture de BD efimera).
 
+## Despliegue con Docker
+
+Para levantar todo el sistema (MySQL + dashboard + crawl diario) con un
+solo comando, en tu maquina o en un VPS:
+
+```bash
+copy .env.example .env    # edita .env con tus credenciales
+docker compose up -d
+```
+
+Esto levanta 3 servicios:
+
+- **`mysql`**: MySQL 8.0 con un volumen persistente. Las migraciones de
+  `migrations/*.sql` se aplican solas la primera vez que arranca (MySQL
+  ejecuta automaticamente los `.sql` que encuentra en
+  `/docker-entrypoint-initdb.d/`, en orden alfabetico — por eso estan
+  numeradas 001, 002, etc). Si ya tenias datos de una instalacion local
+  previa, esta es una base de datos nueva y vacia: no migra datos
+  existentes automaticamente.
+- **`dashboard`**: el dashboard servido con `waitress` (servidor de
+  produccion, no el modo `debug` de Flask) en el puerto 5000
+  (`http://localhost:5000` o `http://<ip-del-vps>:5000`). **De momento no
+  tiene autenticacion ni restriccion de red** — es una decision consciente
+  para esta primera version; si vas a exponerlo en un VPS con IP publica,
+  considera ponerlo detras de una VPN (ej. Tailscale) o restringir el
+  puerto por firewall antes de abrirlo a internet.
+- **`crawler`**: ejecuta el crawl completo una vez al dia (06:00 UTC, ver
+  `scheduler.py`) sin depender de cron del host ni de GitHub Actions — por
+  eso ya no existe `daily_crawl.yml`, este servicio lo sustituye y no
+  necesita que la BD sea alcanzable desde internet (todo corre en la misma
+  red interna de Docker).
+
+Para dar de alta competidores, la forma mas simple es entrar al contenedor
+del crawler y usar el mismo snippet de Python de la seccion
+[Anadir competidores](#4-anadir-competidores) (con `DB_HOST=mysql`, ya
+puesto por `docker-compose.yml`):
+
+```bash
+docker compose exec crawler python
+```
+
+Para ver logs (por ejemplo, cuanto falta para el proximo crawl):
+
+```bash
+docker compose logs -f crawler
+```
+
+Para parar todo (`-v` tambien borra el volumen de MySQL, con lo que se
+pierden los datos):
+
+```bash
+docker compose down       # conserva los datos
+docker compose down -v    # borra tambien la base de datos
+```
+
 ## CI/CD
 
 - **`.github/workflows/tests.yml`**: corre `pytest` en cada push/PR. No
   necesita secrets ni acceso a MySQL.
-- **`.github/workflows/daily_crawl.yml`**: cron diario que ejecuta
-  `main.py` contra MySQL en produccion. **No lo actives hasta que la BD
-  sea alcanzable desde internet** (IP publica, firewall con reglas para los
-  rangos de IP de GitHub Actions, un runner self-hosted, o un tunel SSH) —
-  los runners de `ubuntu-latest` tienen IP dinamica. Secrets necesarios:
-  `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`,
-  `SLACK_BOT_TOKEN`, `SLACK_CHANNEL`, `SLACK_WEBHOOK_URL` (opcional, solo
-  para la notificacion de fallo).
 
 ## Estructura del codigo
 
@@ -136,12 +184,20 @@ todavia; si el proyecto crece, conviene anadir un contenedor MySQL de test
   el estado real de la BD (`get_new_products` / `get_unnotified_events`),
   no listas en memoria — asi el digest es correcto aunque el crawl falle a
   mitad para algun competidor.
-- `dashboard.py` + `templates/dashboard.html` — Vista web local de solo
-  lectura sobre MySQL (competidores, catalogo actual, cambios de precio
-  recientes). Servidor de desarrollo Flask, sin autenticacion: solo para
-  uso local.
-- `tests/` — Tests unitarios de crawler, normalizer, detector y el helper de
-  conversion Decimal->float de `db.py`.
+- `dashboard.py` + `templates/dashboard.html` — Vista web de solo lectura
+  sobre MySQL (competidores, catalogo actual, cambios de precio recientes).
+  Sin autenticacion. Local: `python dashboard.py` (servidor de desarrollo
+  Flask, `debug=True`). Docker: se sirve con `waitress` (ver
+  [Despliegue con Docker](#despliegue-con-docker)).
+- `scheduler.py` — Ejecuta el crawl diario dentro del contenedor `crawler`
+  (bucle Python que calcula cuanto falta para las 06:00 UTC y espera, en
+  vez de un demonio cron dentro de la imagen).
+- `Dockerfile` + `docker-compose.yml` — Empaquetado para desplegar en un
+  VPS o servidor propio. Una sola imagen para `dashboard` y `crawler`
+  (ambos necesitan Playwright/Chromium: el boton "Lanzar crawl ahora" del
+  dashboard ejecuta `main.py` en el mismo proceso).
+- `tests/` — Tests unitarios de crawler, normalizer, detector, scheduler y
+  el helper de conversion Decimal->float de `db.py`.
 
 ## Como funciona
 
@@ -176,9 +232,10 @@ el mismo dia**
 ## Roadmap
 
 - [ ] Panel/UI para gestionar competidores en vez de scripts sueltos
-- [ ] Tests de integracion contra MySQL real (docker-compose)
+- [ ] Tests de integracion contra MySQL real
 - [ ] Scraping de plazos de envio reales (`crawl_shipping_time`, ya
       implementado pero no conectado al pipeline principal por coste extra
       de una request por producto)
 - [ ] Alertas de stock basadas en `detect_availability_change`
-- [ ] Activar `daily_crawl.yml` cuando la BD este accesible desde produccion
+- [ ] Autenticacion o VPN para el dashboard antes de exponerlo en un VPS
+      con IP publica (ver [Despliegue con Docker](#despliegue-con-docker))

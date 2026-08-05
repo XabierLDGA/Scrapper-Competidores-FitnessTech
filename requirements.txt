@@ -8,3 +8,4 @@ flask==3.0.3
 pytest==7.4.3
 pytest-asyncio==0.21.1
 playwright==1.62.0
+waitress==3.0.2
