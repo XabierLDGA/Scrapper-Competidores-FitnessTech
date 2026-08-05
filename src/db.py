@@ -347,7 +347,7 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT pe.*, p.title, c.name AS competitor
+                    SELECT pe.*, p.title, p.sku, c.name AS competitor
                     FROM price_events pe
                     JOIN products p ON pe.product_id = p.id
                     JOIN competitors c ON p.competitor_id = c.id
