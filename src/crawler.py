@@ -119,10 +119,12 @@ class Crawler:
             title_elem = product.css_first(".product-title, [data-name], h2")
             price_elem = product.css_first(".price, [data-price], .product-price")
             url_elem = product.css_first("a")
+            sku_elem = product.css_first("[data-sku], .sku, .product-sku")
 
             title = title_elem.text() if title_elem else "Unknown"
             price_text = price_elem.text() if price_elem else "0"
             product_url = url_elem.attributes.get("href", "") if url_elem else ""
+            sku = sku_elem.text(strip=True) if sku_elem else None
 
             if not product_url:
                 continue
@@ -137,6 +139,7 @@ class Crawler:
                 "url": product_url,
                 "price": price,
                 "original_price": price,
+                "sku": sku,
             })
 
         return products

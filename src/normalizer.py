@@ -14,6 +14,7 @@ class Normalizer:
             "external_id": str(raw_product.get("id", "")).strip(),
             "url": raw_product.get("url", "").strip(),
             "title": raw_product.get("title", "Unknown").strip(),
+            "sku": (raw_product.get("sku") or "").strip() or None,
             "price": float(raw_product.get("price", 0)),
             "price_original": float(raw_product.get("original_price", raw_product.get("price", 0))),
             "currency": raw_product.get("currency", self.currency),

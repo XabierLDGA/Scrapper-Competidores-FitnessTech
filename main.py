@@ -38,6 +38,7 @@ async def process_product(db: Database, detector: ChangeDetector, notifier: Noti
         external_id=product["external_id"],
         url=product["url"],
         title=product["title"],
+        sku=product.get("sku"),
     )
 
     old_snapshot = db.get_last_snapshot(product_id)
