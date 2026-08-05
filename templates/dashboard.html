@@ -128,13 +128,19 @@
   }
   .crawl-btn:hover { opacity: 0.9; }
   .crawl-btn:disabled { opacity: 0.6; cursor: wait; }
-  .competitor-filter {
+  .competitor-filter, .product-search {
     background: var(--panel);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 9px 14px;
     font-size: 0.9rem;
+  }
+  .product-search {
+    width: 220px;
+  }
+  .product-search::placeholder {
+    color: var(--muted);
   }
   .flash {
     margin: 20px 32px 0;
@@ -153,6 +159,8 @@
     <p>Vista local de MySQL &mdash; se actualiza al recargar la pagina, no es en tiempo real</p>
   </div>
   <div style="display: flex; align-items: center; gap: 16px;">
+    <input type="text" id="product-search" class="product-search"
+           placeholder="Buscar por nombre o SKU...">
     <select id="competitor-filter" class="competitor-filter">
       <option value="">Todos los competidores</option>
       {% for c in competitors %}
@@ -208,7 +216,7 @@
         </thead>
         <tbody>
           {% for p in new_products %}
-          <tr data-competitor="{{ p.competitor }}">
+          <tr data-competitor="{{ p.competitor }}" data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
             <td>{{ p.competitor }}</td>
             <td>{{ p.sku or "-" }}</td>
             <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
@@ -241,7 +249,7 @@
         </thead>
         <tbody>
           {% for e in events %}
-          <tr data-competitor="{{ e.competitor }}">
+          <tr data-competitor="{{ e.competitor }}" data-search="{{ (e.title ~ ' ' ~ (e.sku or '')) | lower }}">
             <td>{{ e.competitor }}</td>
             <td>{{ e.sku or "-" }}</td>
             <td class="title">{{ e.title }}</td>
@@ -269,7 +277,7 @@
         </thead>
         <tbody>
           {% for a in availability_events %}
-          <tr data-competitor="{{ a.competitor }}">
+          <tr data-competitor="{{ a.competitor }}" data-search="{{ (a.title ~ ' ' ~ (a.sku or '')) | lower }}">
             <td>{{ a.competitor }}</td>
             <td>{{ a.sku or "-" }}</td>
             <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
@@ -308,7 +316,7 @@
         </thead>
         <tbody>
           {% for r in removed_products %}
-          <tr data-competitor="{{ r.competitor }}">
+          <tr data-competitor="{{ r.competitor }}" data-search="{{ (r.title ~ ' ' ~ (r.sku or '')) | lower }}">
             <td>{{ r.competitor }}</td>
             <td>{{ r.sku or "-" }}</td>
             <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
@@ -334,7 +342,7 @@
         </thead>
         <tbody>
           {% for p in products %}
-          <tr data-competitor="{{ p.competitor }}">
+          <tr data-competitor="{{ p.competitor }}" data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
             <td>{{ p.competitor }}</td>
             <td>{{ p.sku or "-" }}</td>
             <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
@@ -359,19 +367,29 @@
 
 </main>
 <script>
-  document.getElementById("competitor-filter").addEventListener("change", function () {
-    const selected = this.value;
+  const competitorFilter = document.getElementById("competitor-filter");
+  const productSearch = document.getElementById("product-search");
+
+  function applyFilters() {
+    const selectedCompetitor = competitorFilter.value;
+    const searchText = productSearch.value.trim().toLowerCase();
     document.querySelectorAll("section").forEach(function (section) {
       let visibleRows = 0;
       section.querySelectorAll("tbody tr[data-competitor]").forEach(function (row) {
-        const match = !selected || row.dataset.competitor === selected;
+        const competitorMatch = !selectedCompetitor || row.dataset.competitor === selectedCompetitor;
+        const searchMatch = !searchText || row.dataset.search === undefined
+          || row.dataset.search.includes(searchText);
+        const match = competitorMatch && searchMatch;
         row.style.display = match ? "" : "none";
         if (match) visibleRows++;
       });
       const countEl = section.querySelector(".section-count");
       if (countEl) countEl.textContent = visibleRows;
     });
-  });
+  }
+
+  competitorFilter.addEventListener("change", applyFilters);
+  productSearch.addEventListener("input", applyFilters);
 
   document.addEventListener("click", function (event) {
     const row = event.target.closest("tbody tr");
