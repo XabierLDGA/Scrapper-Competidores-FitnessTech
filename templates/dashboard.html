@@ -76,6 +76,18 @@
   tbody tr:not(:last-child) td {
     border-bottom: 1px solid var(--border);
   }
+  tbody tr {
+    cursor: pointer;
+  }
+  tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  tbody tr.row-selected {
+    background: rgba(91, 140, 255, 0.16);
+  }
+  tbody tr.row-selected:hover {
+    background: rgba(91, 140, 255, 0.22);
+  }
   td.title, td.url {
     white-space: normal;
     max-width: 420px;
@@ -359,6 +371,16 @@
       const countEl = section.querySelector(".section-count");
       if (countEl) countEl.textContent = visibleRows;
     });
+  });
+
+  document.addEventListener("click", function (event) {
+    const row = event.target.closest("tbody tr");
+    if (!row) return;
+    const wasSelected = row.classList.contains("row-selected");
+    document.querySelectorAll("tr.row-selected").forEach(function (r) {
+      r.classList.remove("row-selected");
+    });
+    if (!wasSelected) row.classList.add("row-selected");
   });
 </script>
 </body>
