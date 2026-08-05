@@ -260,15 +260,16 @@ class Database:
                 cursor.close()
 
     def add_competitor(self, name: str, website_url: str,
-                        product_api_url: str = None, country: str = "ES") -> int:
+                        product_api_url: str = None, country: str = "ES",
+                        platform: str = None) -> int:
         """Anade un competidor a la BD."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             try:
                 cursor.execute("""
-                    INSERT INTO competitors (name, website_url, product_api_url, country)
-                    VALUES (%s, %s, %s, %s)
-                """, (name, website_url, product_api_url, country))
+                    INSERT INTO competitors (name, website_url, product_api_url, country, platform)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (name, website_url, product_api_url, country, platform))
                 conn.commit()
                 return cursor.lastrowid
             except mysql.connector.Error as err:
