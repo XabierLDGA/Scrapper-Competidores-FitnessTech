@@ -279,3 +279,55 @@ class Crawler:
                 seen.add(absolute)
                 urls.append(absolute)
         return urls
+
+    def _parse_magento_category(self, html: str) -> list[dict]:
+        """Extrae productos de una pagina de categoria de Magento (grid Luma).
+
+        No hace falta entrar a la ficha de cada producto: el grid ya trae
+        sku, titulo, precio (actual y original si hay descuento) y
+        disponibilidad en atributos data-* y en el price-box de cada
+        '.product-item-info'.
+        """
+        parser = HTMLParser(html)
+        products = []
+
+        for item in parser.css(".product-item-info"):
+            link = item.css_first("a.product-item-photo")
+            if not link:
+                continue
+
+            sku = link.attributes.get("data-id")
+            title = link.attributes.get("data-name")
+            url = link.attributes.get("href")
+            if not sku or not url:
+                continue
+
+            final_elem = item.css_first('[data-price-type="finalPrice"]')
+            old_elem = item.css_first('[data-price-type="oldPrice"]')
+
+            final_price = (
+                self._parse_price(final_elem.attributes.get("data-price-amount", "0"))
+                if final_elem else 0.0
+            )
+            original_price = (
+                self._parse_price(old_elem.attributes.get("data-price-amount", "0"))
+                if old_elem else final_price
+            )
+
+            availability_elem = item.css_first("p.availability")
+            available = True
+            if availability_elem:
+                classes = availability_elem.attributes.get("class") or ""
+                available = "out-of-stock" not in classes
+
+            products.append({
+                "id": sku,
+                "sku": sku,
+                "title": title,
+                "url": url,
+                "price": final_price,
+                "original_price": original_price,
+                "available": available,
+            })
+
+        return products

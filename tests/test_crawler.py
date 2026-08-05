@@ -155,3 +155,93 @@ def test_discover_magento_categories_no_nav_returns_empty():
     crawler = Crawler()
     urls = crawler._discover_magento_categories("<html><body>sin menu</body></html>", "https://example.com")
     assert urls == []
+
+
+MAGENTO_CATEGORY_HTML = """
+<ol class="products list items product-items">
+    <li class="item product product-item">
+        <div class="product-item-info" data-container="product-grid">
+            <a href="https://www.titaniumstrength.es/cinta-a.html"
+               class="product photo product-item-photo"
+               data-id="SKU-A" data-name="Cinta A"></a>
+            <div class="price-box price-final_price" data-product-id="1">
+                <span class="old-price">
+                    <span id="old-price-1" data-price-amount="1495"
+                          data-price-type="oldPrice" class="price-wrapper">
+                        <span class="price">1.495,00&#8364;</span>
+                    </span>
+                </span>
+                <span class="special-price">
+                    <span id="product-price-1" data-price-amount="995"
+                          data-price-type="finalPrice" class="price-wrapper">
+                        <span class="price">995,00&#8364;</span>
+                    </span>
+                </span>
+            </div>
+            <p class="availability in-stock NO_entrega24h">En Stock</p>
+        </div>
+    </li>
+    <li class="item product product-item">
+        <div class="product-item-info" data-container="product-grid">
+            <a href="https://www.titaniumstrength.es/cinta-b.html"
+               class="product photo product-item-photo"
+               data-id="SKU-B" data-name="Cinta B"></a>
+            <div class="price-box price-final_price" data-product-id="2">
+                <span class="normal-price">
+                    <span id="product-price-2" data-price-amount="1195"
+                          data-price-type="finalPrice" class="price-wrapper">
+                        <span class="price">1.195,00&#8364;</span>
+                    </span>
+                </span>
+            </div>
+            <p class="availability in-stock NO_entrega24h">En Stock</p>
+        </div>
+    </li>
+    <li class="item product product-item">
+        <div class="product-item-info" data-container="product-grid">
+            <a href="https://www.titaniumstrength.es/cinta-c.html"
+               class="product photo product-item-photo"
+               data-id="SKU-C" data-name="Cinta C"></a>
+            <div class="price-box price-final_price" data-product-id="3">
+                <span class="normal-price">
+                    <span id="product-price-3" data-price-amount="750"
+                          data-price-type="finalPrice" class="price-wrapper">
+                        <span class="price">750,00&#8364;</span>
+                    </span>
+                </span>
+            </div>
+            <p class="availability out-of-stock">Proximamente Disponible</p>
+        </div>
+    </li>
+</ol>
+"""
+
+
+def test_parse_magento_category_extracts_discount_and_stock():
+    crawler = Crawler()
+
+    products = crawler._parse_magento_category(MAGENTO_CATEGORY_HTML)
+
+    assert len(products) == 3
+
+    by_sku = {p["sku"]: p for p in products}
+
+    discounted = by_sku["SKU-A"]
+    assert discounted["id"] == "SKU-A"
+    assert discounted["title"] == "Cinta A"
+    assert discounted["url"] == "https://www.titaniumstrength.es/cinta-a.html"
+    assert discounted["price"] == 995.0
+    assert discounted["original_price"] == 1495.0
+    assert discounted["available"] is True
+
+    no_discount = by_sku["SKU-B"]
+    assert no_discount["price"] == 1195.0
+    assert no_discount["original_price"] == 1195.0
+
+    out_of_stock = by_sku["SKU-C"]
+    assert out_of_stock["available"] is False
+
+
+def test_parse_magento_category_empty_html_returns_empty_list():
+    crawler = Crawler()
+    assert crawler._parse_magento_category("<html><body>sin productos</body></html>") == []
