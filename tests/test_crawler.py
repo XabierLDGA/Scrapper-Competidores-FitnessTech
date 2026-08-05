@@ -70,6 +70,60 @@ async def test_shopify_products_parsing(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_shopify_products_tagged_with_series_from_matching_collections(monkeypatch):
+    """Solo las colecciones cuyo titulo sugiere una linea de producto
+    ('series'/'select') deben usarse para etiquetar; una categoria generica
+    como 'Cardio' no cuenta, aunque tambien sea una coleccion de Shopify."""
+    crawler = Crawler()
+
+    products_json = """
+    {
+        "products": [
+            {
+                "id": 1, "title": "Multiestacion Elite", "handle": "multiestacion-elite",
+                "variants": [{"id": 111, "price": "999.00", "available": true, "sku": "ME-1"}]
+            },
+            {
+                "id": 2, "title": "Cinta de Correr", "handle": "cinta-de-correr",
+                "variants": [{"id": 222, "price": "499.00", "available": true, "sku": "CC-1"}]
+            }
+        ]
+    }
+    """
+    collections_json = """
+    {
+        "collections": [
+            {"handle": "elite-series", "title": "Elite Series"},
+            {"handle": "cardio", "title": "Cardio"}
+        ]
+    }
+    """
+    elite_series_products_json = """
+    {"products": [{"id": 1, "title": "Multiestacion Elite", "handle": "multiestacion-elite", "variants": []}]}
+    """
+    empty = '{"products": [], "collections": []}'
+
+    async def mock_fetch(url):
+        if "collections.json" in url:
+            return collections_json if "page=1" in url else empty
+        if "/collections/elite-series/products.json" in url:
+            return elite_series_products_json if "page=1" in url else empty
+        if "/collections/cardio/products.json" in url:
+            return empty
+        if "/products.json" in url:
+            return products_json if "page=1" in url else empty
+        return empty
+
+    monkeypatch.setattr(crawler, "fetch", mock_fetch)
+    products = await crawler.crawl_shopify_products("https://example.com/products.json")
+
+    by_id = {p["id"]: p for p in products}
+    assert by_id[111]["series"] == "Elite Series"
+    assert by_id[222]["series"] is None
+    assert "_shopify_product_id" not in by_id[111]
+
+
+@pytest.mark.asyncio
 async def test_shopify_products_pagination(monkeypatch):
     """Shopify pagina /products.json (30 por defecto, 250 max); el crawler
     debe seguir pidiendo paginas hasta recibir una vacia, no quedarse con

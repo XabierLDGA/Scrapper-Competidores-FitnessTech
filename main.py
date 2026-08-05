@@ -44,6 +44,7 @@ async def process_product(db: Database, detector: ChangeDetector, notifier: Noti
         url=product["url"],
         title=product["title"],
         sku=product.get("sku"),
+        series=product.get("series"),
     )
 
     old_snapshot = db.get_last_snapshot(product_id)

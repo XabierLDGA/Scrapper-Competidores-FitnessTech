@@ -51,8 +51,9 @@ class Database:
                 conn.close()
 
     def insert_or_update_product(self, competitor_id: int, external_id: str,
-                                  url: str, title: str, sku: str = None) -> int:
-        """Inserta un producto o actualiza last_seen/title/sku si ya existe.
+                                  url: str, title: str, sku: str = None,
+                                  series: str = None) -> int:
+        """Inserta un producto o actualiza last_seen/title/sku/series si ya existe.
 
         LAST_INSERT_ID(id) hace que cursor.lastrowid devuelva el id existente
         tambien en la rama de UPDATE, evitando una segunda consulta SELECT.
@@ -61,16 +62,17 @@ class Database:
             cursor = conn.cursor()
             try:
                 cursor.execute("""
-                    INSERT INTO products (competitor_id, external_id, url, title, sku)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO products (competitor_id, external_id, url, title, sku, series)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         last_seen = CURDATE(),
                         title = VALUES(title),
                         sku = VALUES(sku),
+                        series = VALUES(series),
                         status = 'active',
                         removed_at = NULL,
                         id = LAST_INSERT_ID(id)
-                """, (competitor_id, external_id, url, title, sku))
+                """, (competitor_id, external_id, url, title, sku, series))
                 conn.commit()
                 return cursor.lastrowid
             finally:
@@ -155,7 +157,7 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT ae.*, p.title, p.sku, p.url, c.name AS competitor
+                    SELECT ae.*, p.title, p.sku, p.series, p.url, c.name AS competitor
                     FROM availability_events ae
                     JOIN products p ON ae.product_id = p.id
                     JOIN competitors c ON p.competitor_id = c.id
@@ -194,7 +196,7 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT c.name AS competitor, p.title, p.sku, p.url, p.last_seen, p.removed_at
+                    SELECT c.name AS competitor, p.title, p.sku, p.series, p.url, p.last_seen, p.removed_at
                     FROM products p
                     JOIN competitors c ON c.id = p.competitor_id
                     WHERE p.status = 'removed' AND p.removed_at >= DATE_SUB(NOW(), INTERVAL %s HOUR)
@@ -210,7 +212,7 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT pe.*, p.title, p.sku, c.name as competitor
+                    SELECT pe.*, p.title, p.sku, p.series, c.name as competitor
                     FROM price_events pe
                     JOIN products p ON pe.product_id = p.id
                     JOIN competitors c ON p.competitor_id = c.id
@@ -320,9 +322,9 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT competitor, title, sku, url, price, price_original, available, captured_at
+                    SELECT competitor, title, sku, series, url, price, price_original, available, captured_at
                     FROM (
-                        SELECT c.name AS competitor, p.title, p.sku, p.url, s.price, s.price_original,
+                        SELECT c.name AS competitor, p.title, p.sku, p.series, p.url, s.price, s.price_original,
                                s.available, s.captured_at,
                                ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY s.captured_at DESC) AS rn
                         FROM products p
@@ -347,7 +349,7 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT pe.*, p.title, p.sku, c.name AS competitor
+                    SELECT pe.*, p.title, p.sku, p.series, c.name AS competitor
                     FROM price_events pe
                     JOIN products p ON pe.product_id = p.id
                     JOIN competitors c ON p.competitor_id = c.id
@@ -370,7 +372,7 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT c.name AS competitor, p.title, p.sku, p.url, p.first_seen,
+                    SELECT c.name AS competitor, p.title, p.sku, p.series, p.url, p.first_seen,
                            s.price, s.available
                     FROM products p
                     JOIN competitors c ON c.id = p.competitor_id

@@ -167,9 +167,14 @@ docker compose down -v    # borra tambien la base de datos
 
 ## Estructura del codigo
 
-- `src/crawler.py` — Descarga datos: Shopify `/products.json` (via
-  `crawl_competitor_products` en `main.py`) con fallback automatico a
-  scraping HTML generico si el competidor no expone ese endpoint.
+- `src/crawler.py` — Descarga datos, con tres caminos segun `platform`
+  (elegido en `crawl_competitor_products` de `main.py`): Shopify
+  `/products.json` (con fallback a scraping HTML generico si no hay
+  `product_api_url`), Magento via Playwright (`crawl_magento_categories`,
+  para sitios detras de Cloudflare), o el fallback HTML generico. Para
+  Shopify tambien cruza las colecciones de la tienda cuyo titulo sugiere
+  una linea de producto ("series"/"select") para rellenar el campo `series`
+  de cada producto — no sale en el dashboard, pero si en los exports Excel.
 - `src/normalizer.py` — Convierte productos crawleados a un formato comun y
   descarta los que no tienen datos minimos (id, titulo, precio >= 0).
 - `src/detector.py` — Unica fuente de verdad para "es nuevo", "cambio de
@@ -239,3 +244,11 @@ el mismo dia**
 - [ ] Alertas de stock basadas en `detect_availability_change`
 - [ ] Autenticacion o VPN para el dashboard antes de exponerlo en un VPS
       con IP publica (ver [Despliegue con Docker](#despliegue-con-docker))
+- [ ] Capturar la "Linea" de producto (Elite Series, Black Series, Genesis
+      Series...) de Titanium Strength. El dato existe en Magento, pero solo
+      en la ficha de cada producto individual (tabla de especificaciones,
+      atributo "Línea"), no en la rejilla de categoria que ya se scrapea —
+      capturarlo implica visitar las ~865 fichas de producto una a una, lo
+      que alargaria el crawl diario de <1 min a ~20-40 min. Fitness Tech /
+      Fitness Tech FR (Shopify) ya capturan su equivalente ("series") desde
+      las colecciones de la tienda, sin este coste extra.

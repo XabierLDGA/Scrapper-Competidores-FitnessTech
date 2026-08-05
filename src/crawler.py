@@ -103,9 +103,63 @@ class Crawler:
                         "original_price": float(variant.get("compare_at_price") or variant.get("price", 0)),
                         "available": variant.get("available", False),
                         "sku": variant.get("sku"),
+                        "_shopify_product_id": product.get("id"),
                     })
 
+        series_by_product_id = await self._crawl_shopify_series_map(base_url, max_pages)
+        for entry in all_products:
+            entry["series"] = series_by_product_id.get(entry.pop("_shopify_product_id"))
+
         return all_products
+
+    async def _crawl_shopify_series_map(self, base_url: str, max_pages: int = 50) -> dict:
+        """Cruza las colecciones de Shopify cuyo titulo sugiere que son una
+        linea de producto (contiene 'series' o 'select', ej. 'Elite Series',
+        'Compact Select') -no una categoria generica como 'Cardio'- con los
+        productos que contienen, para poder etiquetar cada producto con su
+        serie. Devuelve {shopify_product_id: nombre_de_la_serie}.
+        """
+        collections = []
+        for page in range(1, max_pages + 1):
+            content = await self.fetch(f"{base_url}/collections.json?limit=250&page={page}")
+            if not content:
+                break
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                logger.error(f"No se pudo parsear JSON de colecciones Shopify en {base_url}")
+                break
+            page_collections = data.get("collections", [])
+            if not page_collections:
+                break
+            collections.extend(page_collections)
+
+        series_map = {}
+        for collection in collections:
+            title = collection.get("title", "")
+            handle = collection.get("handle")
+            lowered = title.lower()
+            if not handle or ("series" not in lowered and "select" not in lowered):
+                continue
+
+            for page in range(1, max_pages + 1):
+                content = await self.fetch(
+                    f"{base_url}/collections/{handle}/products.json?limit=250&page={page}"
+                )
+                if not content:
+                    break
+                try:
+                    data = json.loads(content)
+                except json.JSONDecodeError:
+                    logger.error(f"No se pudo parsear JSON de la coleccion {handle}")
+                    break
+                page_products = data.get("products", [])
+                if not page_products:
+                    break
+                for product in page_products:
+                    series_map[product.get("id")] = title
+
+        return series_map
 
     async def crawl_html_products(self, url: str, css_selector: str = ".product") -> list[dict]:
         """Scraping HTML generico (fallback para tiendas no-Shopify)."""
