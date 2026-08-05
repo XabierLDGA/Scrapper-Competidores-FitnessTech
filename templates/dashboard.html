@@ -192,14 +192,14 @@
       {% if new_products %}
       <table>
         <thead>
-          <tr><th>Competidor</th><th>Producto</th><th>SKU</th><th>Precio</th><th>Disponibilidad</th><th>Visto por primera vez</th></tr>
+          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Visto por primera vez</th></tr>
         </thead>
         <tbody>
           {% for p in new_products %}
           <tr data-competitor="{{ p.competitor }}">
             <td>{{ p.competitor }}</td>
-            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
             <td>{{ p.sku or "-" }}</td>
+            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
             <td>{% if p.price is not none %}&euro;{{ "%.2f"|format(p.price) }}{% else %}-{% endif %}</td>
             <td>
               {% if p.available %}
@@ -225,14 +225,14 @@
       {% if events %}
       <table>
         <thead>
-          <tr><th>Competidor</th><th>Producto</th><th>SKU</th><th>Antes</th><th>Ahora</th><th>Cambio</th><th>Detectado</th></tr>
+          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Cambio</th><th>Detectado</th></tr>
         </thead>
         <tbody>
           {% for e in events %}
           <tr data-competitor="{{ e.competitor }}">
             <td>{{ e.competitor }}</td>
-            <td class="title">{{ e.title }}</td>
             <td>{{ e.sku or "-" }}</td>
+            <td class="title">{{ e.title }}</td>
             <td>&euro;{{ "%.2f"|format(e.old_price) }}</td>
             <td>&euro;{{ "%.2f"|format(e.new_price) }}</td>
             <td class="change {{ e.event_type }}">{{ "%+.1f"|format(e.percent_change) }}%</td>
@@ -253,14 +253,14 @@
       {% if availability_events %}
       <table>
         <thead>
-          <tr><th>Competidor</th><th>Producto</th><th>SKU</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr>
+          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr>
         </thead>
         <tbody>
           {% for a in availability_events %}
           <tr data-competitor="{{ a.competitor }}">
             <td>{{ a.competitor }}</td>
-            <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
             <td>{{ a.sku or "-" }}</td>
+            <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
             <td>
               {% if a.was_available %}
                 <span class="badge available">Disponible</span>
@@ -292,14 +292,14 @@
       {% if removed_products %}
       <table>
         <thead>
-          <tr><th>Competidor</th><th>Producto</th><th>SKU</th><th>Ultimo visto</th><th>Eliminado</th></tr>
+          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Ultimo visto</th><th>Eliminado</th></tr>
         </thead>
         <tbody>
           {% for r in removed_products %}
           <tr data-competitor="{{ r.competitor }}">
             <td>{{ r.competitor }}</td>
-            <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
             <td>{{ r.sku or "-" }}</td>
+            <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
             <td>{{ r.last_seen }}</td>
             <td>{{ r.removed_at }}</td>
           </tr>
@@ -318,14 +318,14 @@
       {% if products %}
       <table>
         <thead>
-          <tr><th>Competidor</th><th>Producto</th><th>SKU</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr>
+          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr>
         </thead>
         <tbody>
           {% for p in products %}
           <tr data-competitor="{{ p.competitor }}">
             <td>{{ p.competitor }}</td>
-            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
             <td>{{ p.sku or "-" }}</td>
+            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
             <td>&euro;{{ "%.2f"|format(p.price) }}</td>
             <td>
               {% if p.available %}
