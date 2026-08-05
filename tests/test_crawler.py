@@ -245,3 +245,66 @@ def test_parse_magento_category_extracts_discount_and_stock():
 def test_parse_magento_category_empty_html_returns_empty_list():
     crawler = Crawler()
     assert crawler._parse_magento_category("<html><body>sin productos</body></html>") == []
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_categories_paginates_and_dedupes(monkeypatch):
+    """Dos categorias que comparten un producto (tipico padre/hija): el
+    resultado no debe repetirlo. La categoria A tiene 2 paginas (la 2a
+    llega vacia y corta la paginacion); la B tiene solo 1."""
+    crawler = Crawler()
+
+    nav_html = """
+    <nav class="navigation">
+        <a href="/cat-a">Cat A</a>
+        <a href="/cat-b">Cat B</a>
+    </nav>
+    """
+
+    def product_li(sku, price):
+        return f"""
+        <li class="item product product-item">
+            <div class="product-item-info">
+                <a href="https://example.com/{sku}.html"
+                   class="product photo product-item-photo"
+                   data-id="{sku}" data-name="Producto {sku}"></a>
+                <div class="price-box price-final_price">
+                    <span id="product-price-{sku}" data-price-amount="{price}"
+                          data-price-type="finalPrice" class="price-wrapper"></span>
+                </div>
+                <p class="availability in-stock">En Stock</p>
+            </div>
+        </li>
+        """
+
+    responses = {
+        "https://example.com": nav_html,
+        "https://example.com/cat-a": f"<ol>{product_li('SKU-1', 100)}</ol>",
+        "https://example.com/cat-a?p=2": "<ol></ol>",
+        "https://example.com/cat-b": f"<ol>{product_li('SKU-1', 100)}{product_li('SKU-2', 200)}</ol>",
+        "https://example.com/cat-b?p=2": "<ol></ol>",
+    }
+
+    async def mock_fetch_rendered(url):
+        return responses.get(url)
+
+    monkeypatch.setattr(crawler, "fetch_rendered", mock_fetch_rendered)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert {p["sku"] for p in products} == {"SKU-1", "SKU-2"}
+    assert len(products) == 2
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_categories_home_fetch_fails_returns_empty(monkeypatch):
+    crawler = Crawler()
+
+    async def mock_fetch_rendered(url):
+        return None
+
+    monkeypatch.setattr(crawler, "fetch_rendered", mock_fetch_rendered)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert products == []

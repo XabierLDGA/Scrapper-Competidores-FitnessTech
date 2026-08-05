@@ -331,3 +331,35 @@ class Crawler:
             })
 
         return products
+
+    async def crawl_magento_categories(self, base_url: str, max_pages_per_category: int = 20) -> list[dict]:
+        """Descarga el catalogo completo de una tienda Magento detras de
+        Cloudflare, via Playwright.
+
+        Descubre las categorias desde el menu principal y pagina cada una
+        hasta que una pagina no devuelve productos. Los productos se
+        deduplican por sku porque las categorias padre/hija listan los
+        mismos productos.
+        """
+        home_html = await self.fetch_rendered(base_url)
+        if not home_html:
+            return []
+
+        category_urls = self._discover_magento_categories(home_html, base_url)
+        products_by_sku: dict[str, dict] = {}
+
+        for category_url in category_urls:
+            for page_num in range(1, max_pages_per_category + 1):
+                page_url = category_url if page_num == 1 else f"{category_url}?p={page_num}"
+                html = await self.fetch_rendered(page_url)
+                if not html:
+                    break
+
+                items = self._parse_magento_category(html)
+                if not items:
+                    break
+
+                for item in items:
+                    products_by_sku[item["sku"]] = item
+
+        return list(products_by_sku.values())
