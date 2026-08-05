@@ -124,3 +124,34 @@ async def test_html_products_have_stable_id(monkeypatch):
     assert len(products_run_1) == 1
     assert products_run_1[0]["id"] == products_run_2[0]["id"]
     assert products_run_1[0]["price"] == 1299.0
+
+
+def test_discover_magento_categories_filters_and_dedupes():
+    crawler = Crawler()
+
+    html = """
+    <html><body>
+    <nav class="navigation">
+        <a href="/cardio-funcional-hiit/cintas-de-correr">Cintas</a>
+        <a href="/cardio-funcional-hiit/cintas-de-correr">Cintas (repetido)</a>
+        <a href="https://www.titaniumstrength.es/musculacion-titanium/bancos">Bancos</a>
+        <a href="https://otra-web-externa.com/tracking">Externo</a>
+    </nav>
+    <footer>
+        <a href="/no-deberia-aparecer">Fuera del menu</a>
+    </footer>
+    </body></html>
+    """
+
+    urls = crawler._discover_magento_categories(html, "https://www.titaniumstrength.es")
+
+    assert urls == [
+        "https://www.titaniumstrength.es/cardio-funcional-hiit/cintas-de-correr",
+        "https://www.titaniumstrength.es/musculacion-titanium/bancos",
+    ]
+
+
+def test_discover_magento_categories_no_nav_returns_empty():
+    crawler = Crawler()
+    urls = crawler._discover_magento_categories("<html><body>sin menu</body></html>", "https://example.com")
+    assert urls == []

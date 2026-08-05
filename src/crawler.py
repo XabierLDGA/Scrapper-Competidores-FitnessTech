@@ -253,3 +253,29 @@ class Crawler:
         if self._playwright is not None:
             await self._playwright.stop()
             self._playwright = None
+
+    def _discover_magento_categories(self, html: str, base_url: str) -> list[str]:
+        """Extrae las URLs de categoria del menu principal de Magento.
+
+        El menu (nav.navigation) ya lista todo el arbol de categorias, asi
+        que no hace falta mantener una lista de URLs a mano por competidor.
+        """
+        parser = HTMLParser(html)
+        nav = parser.css_first("nav.navigation")
+        if not nav:
+            return []
+
+        domain = urlparse(base_url).netloc
+        seen = set()
+        urls = []
+        for a in nav.css("a"):
+            href = a.attributes.get("href")
+            if not href:
+                continue
+            absolute = urljoin(base_url, href).split("#")[0]
+            if urlparse(absolute).netloc != domain:
+                continue
+            if absolute not in seen:
+                seen.add(absolute)
+                urls.append(absolute)
+        return urls
