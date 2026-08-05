@@ -19,6 +19,17 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Titanium Strength (`titaniumstrength.es`) está detrás de Cloudflare y
+bloquea las peticiones HTTP normales por huella TLS, así que ese competidor
+se descarga con un navegador Chromium real (Playwright) en vez de `httpx`.
+Tras instalar las dependencias, descarga el binario del navegador una vez:
+
+```bash
+playwright install chromium
+```
+
+Este paso descarga ~115MB y solo hace falta ejecutarlo una vez por máquina.
+
 ### 2. MySQL
 
 Necesitas una instancia MySQL 8.0+ corriendo en local (XAMPP, MySQL Installer,
