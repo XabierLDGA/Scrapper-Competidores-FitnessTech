@@ -2,172 +2,301 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Competitor Monitor</title>
+<title>Vigilancia de competencia — FitnessTech</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%88</text></svg>">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --border: #262b36;
-    --text: #e6e8eb;
-    --muted: #8a92a3;
-    --accent: #5b8cff;
-    --green: #3ecf8e;
-    --red: #ff6b6b;
+    --bg: #f5f7f8;
+    --panel: #ffffff;
+    --panel-soft: #f0f2f4;
+    --border: #e3e7ea;
+    --text: #14181f;
+    --muted: #667085;
+    --accent: #0d9488;
+    --accent-dark: #0b7a70;
+    --accent-soft: rgba(13, 148, 136, 0.12);
+    --green: #16a34a;
+    --green-soft: rgba(22, 163, 74, 0.12);
+    --red: #dc2626;
+    --red-soft: rgba(220, 38, 38, 0.1);
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --shadow: 0 1px 2px rgba(20, 24, 31, 0.04), 0 8px 24px -12px rgba(20, 24, 31, 0.12);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
   }
   header {
-    padding: 24px 32px;
-    border-bottom: 1px solid var(--border);
-  }
-  header h1 {
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 600;
-  }
-  header p {
-    margin: 4px 0 0;
-    color: var(--muted);
-    font-size: 0.9rem;
-  }
-  main {
-    padding: 24px 32px 64px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  section {
-    margin-bottom: 40px;
-  }
-  section h2 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: var(--text);
-  }
-  .panel {
+    padding: 20px 32px;
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-  }
-  th, td {
-    padding: 10px 16px;
-    text-align: left;
-    white-space: nowrap;
-  }
-  th {
-    color: var(--muted);
-    font-weight: 500;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
     border-bottom: 1px solid var(--border);
-  }
-  tbody tr:not(:last-child) td {
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr {
-    cursor: pointer;
-  }
-  tbody tr:hover {
-    background: rgba(255, 255, 255, 0.03);
-  }
-  tbody tr.row-selected {
-    background: rgba(91, 140, 255, 0.16);
-  }
-  tbody tr.row-selected:hover {
-    background: rgba(91, 140, 255, 0.22);
-  }
-  td.title, td.url {
-    white-space: normal;
-    max-width: 420px;
-  }
-  .empty {
-    color: var(--muted);
-    padding: 20px 16px;
-    font-size: 0.9rem;
-  }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 600;
-  }
-  .badge.available { background: rgba(62, 207, 142, 0.15); color: var(--green); }
-  .badge.unavailable { background: rgba(255, 107, 107, 0.15); color: var(--red); }
-  .change.increase { color: var(--red); font-weight: 600; }
-  .change.decrease { color: var(--green); font-weight: 600; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .product-search {
+    background: var(--panel-soft);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    width: 260px;
+  }
+  .product-search::placeholder { color: var(--muted); }
+  .product-search:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--panel);
   }
   .crawl-btn {
     background: var(--accent);
     color: #fff;
     border: none;
-    border-radius: 8px;
-    padding: 10px 18px;
+    border-radius: 999px;
+    padding: 11px 20px;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
+    box-shadow: var(--shadow);
   }
-  .crawl-btn:hover { opacity: 0.9; }
+  .crawl-btn:hover { background: var(--accent-dark); }
   .crawl-btn:disabled { opacity: 0.6; cursor: wait; }
-  .competitor-filter, .product-search {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 14px;
-    font-size: 0.9rem;
-  }
-  .product-search {
-    width: 220px;
-  }
-  .product-search::placeholder {
-    color: var(--muted);
-  }
   .flash {
     margin: 20px 32px 0;
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
     font-size: 0.9rem;
+    font-weight: 600;
   }
-  .flash.success { background: rgba(62, 207, 142, 0.15); color: var(--green); }
-  .flash.error { background: rgba(255, 107, 107, 0.15); color: var(--red); }
+  .flash.success { background: var(--green-soft); color: var(--green); }
+  .flash.error { background: var(--red-soft); color: var(--red); }
+
+  main {
+    padding: 8px 32px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .group-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 36px 0 16px;
+  }
+  .group-heading h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+  .group-heading .group-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .group-heading.mine .group-tag { background: var(--accent-soft); color: var(--accent-dark); }
+  .group-heading.rivals .group-tag { background: var(--panel-soft); color: var(--muted); }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .empty-note {
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 16px 4px;
+  }
+
+  .card {
+    grid-column: span 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: box-shadow 0.15s ease;
+  }
+  .card.expanded { grid-column: 1 / -1; }
+  .card.no-match { display: none; }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+  }
+  .card-logo {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    background: var(--panel-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+  }
+  .card-logo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .card-logo.placeholder {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent-dark);
+  }
+  .card-title {
+    flex: 1;
+    min-width: 0;
+  }
+  .card-title .name {
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title .meta {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .card-chevron {
+    flex: none;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+    font-size: 1.1rem;
+  }
+  .card.expanded .card-chevron { transform: rotate(180deg); }
+
+  .card-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 0 18px 16px;
+  }
+  .chip {
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--panel-soft);
+    color: var(--muted);
+  }
+  .chip.active { background: var(--accent-soft); color: var(--accent-dark); }
+  .chip.up { background: var(--red-soft); color: var(--red); }
+  .chip.down { background: var(--green-soft); color: var(--green); }
+
+  .card-detail {
+    display: none;
+    border-top: 1px solid var(--border);
+    background: var(--panel-soft);
+  }
+  .card.expanded .card-detail { display: block; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 18px 0;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .tab-btn:hover { background: rgba(20, 24, 31, 0.04); }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+
+  .tab-panel { display: none; padding: 12px 18px 18px; }
+  .tab-panel.active { display: block; }
+
+  .table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { padding: 10px 14px; text-align: left; white-space: nowrap; }
+  th {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: rgba(13, 148, 136, 0.04); }
+  td.title, td.url { white-space: normal; max-width: 380px; }
+  .table-empty { color: var(--muted); padding: 18px 14px; font-size: 0.85rem; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .badge.available { background: var(--green-soft); color: var(--green); }
+  .badge.unavailable { background: var(--red-soft); color: var(--red); }
+  .change.increase { color: var(--red); font-weight: 700; }
+  .change.decrease { color: var(--green); font-weight: 700; }
+  a { color: var(--accent-dark); text-decoration: none; }
+  a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>Competitor Monitor</h1>
+    <h1>Vigilancia de competencia</h1>
     <p>Vista local de MySQL &mdash; se actualiza al recargar la pagina, no es en tiempo real</p>
   </div>
-  <div style="display: flex; align-items: center; gap: 16px;">
+  <div class="header-controls">
     <input type="text" id="product-search" class="product-search"
-           placeholder="Buscar por nombre o SKU...">
-    <select id="competitor-filter" class="competitor-filter">
-      <option value="">Todos los competidores</option>
-      {% for c in competitors %}
-      <option value="{{ c.name }}">{{ c.name }}</option>
-      {% endfor %}
-    </select>
+           placeholder="Buscar producto o SKU...">
     <form method="POST" action="{{ url_for('trigger_crawl') }}"
           onsubmit="const b=this.querySelector('button'); b.disabled=true; b.textContent='Crawleando...';">
       <button type="submit" class="crawl-btn">Lanzar crawl ahora</button>
@@ -180,227 +309,256 @@
   {% endfor %}
 {% endwith %}
 <main>
+  {% set flags = {'ES': '🇪🇸', 'FR': '🇫🇷', 'PT': '🇵🇹'} %}
+  {% set tabs = [
+    ('new_products', 'Nuevos'),
+    ('price_events', 'Cambios de precio'),
+    ('availability_events', 'Disponibilidad'),
+    ('removed_products', 'Eliminados'),
+    ('catalog', 'Catalogo'),
+  ] %}
 
-  <section>
-    <h2>Competidores (<span class="section-count">{{ competitors|length }}</span>)</h2>
-    <div class="panel">
-      {% if competitors %}
-      <table>
-        <thead>
-          <tr><th>Nombre</th><th>Sitio web</th><th>Pais</th><th>Productos</th><th>Ultimo crawl</th></tr>
-        </thead>
-        <tbody>
-          {% for c in competitors %}
-          <tr data-competitor="{{ c.name }}">
-            <td>{{ c.name }}</td>
-            <td class="url"><a href="{{ c.website_url }}" target="_blank" rel="noopener">{{ c.website_url }}</a></td>
-            <td>{{ c.country }}</td>
-            <td>{{ c.total_products }}</td>
-            <td>{{ c.last_crawled or "-" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty">Todavia no hay competidores. Anade uno con db.add_competitor(...).</div>
-      {% endif %}
+  {% macro competitor_card(c) %}
+  <div class="card" data-name="{{ c.name }}">
+    <button type="button" class="card-head" data-action="toggle-card">
+      <span class="card-logo{{ '' if c.logo else ' placeholder' }}">
+        {% if c.logo %}
+          <img src="{{ url_for('static', filename='logos/' ~ c.logo) }}" alt="Logo {{ c.name }}">
+        {% else %}
+          {{ c.name[:2]|upper }}
+        {% endif %}
+      </span>
+      <span class="card-title">
+        <span class="name">{{ c.name }} {{ flags.get(c.country, '') }}</span>
+        <span class="meta">
+          {{ c.total_products }} en catalogo
+          &middot; ultimo crawl: {{ c.last_crawled or "nunca" }}
+        </span>
+      </span>
+      <span class="card-stats" style="padding:0;">
+        {% if c.new_products %}<span class="chip active">{{ c.new_products|length }} nuevos</span>{% endif %}
+        {% if c.price_events %}<span class="chip up">{{ c.price_events|length }} cambios de precio</span>{% endif %}
+        {% if c.availability_events %}<span class="chip down">{{ c.availability_events|length }} disponibilidad</span>{% endif %}
+      </span>
+      <span class="card-chevron">&#9662;</span>
+    </button>
+
+    <div class="card-detail">
+      <div class="tabs">
+        {% for key, label in tabs %}
+        <button type="button" class="tab-btn{{ ' active' if loop.first }}" data-tab="{{ key }}" data-action="show-tab">
+          {{ label }} ({{ c[key]|length }})
+        </button>
+        {% endfor %}
+      </div>
+
+      <div class="tab-panel active" data-tab="new_products">
+        <div class="table-wrap">
+          {% if c.new_products %}
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Visto</th></tr></thead>
+            <tbody>
+              {% for p in c.new_products %}
+              <tr data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
+                <td>{{ p.sku or "-" }}</td>
+                <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+                <td>{% if p.price is not none %}&euro;{{ "%.2f"|format(p.price) }}{% else %}-{% endif %}</td>
+                <td>{% if p.available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
+                <td>{{ p.first_seen }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">Ningun producto nuevo en las ultimas 24 horas.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="price_events">
+        <div class="table-wrap">
+          {% if c.price_events %}
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Cambio</th><th>Detectado</th></tr></thead>
+            <tbody>
+              {% for e in c.price_events %}
+              <tr data-search="{{ (e.title ~ ' ' ~ (e.sku or '')) | lower }}">
+                <td>{{ e.sku or "-" }}</td>
+                <td class="title">{{ e.title }}</td>
+                <td>&euro;{{ "%.2f"|format(e.old_price) }}</td>
+                <td>&euro;{{ "%.2f"|format(e.new_price) }}</td>
+                <td class="change {{ e.event_type }}">{{ "%+.1f"|format(e.percent_change) }}%</td>
+                <td>{{ e.detected_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">Sin cambios de precio en las ultimas 24 horas.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="availability_events">
+        <div class="table-wrap">
+          {% if c.availability_events %}
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr></thead>
+            <tbody>
+              {% for a in c.availability_events %}
+              <tr data-search="{{ (a.title ~ ' ' ~ (a.sku or '')) | lower }}">
+                <td>{{ a.sku or "-" }}</td>
+                <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
+                <td>{% if a.was_available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
+                <td>{% if a.now_available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
+                <td>{{ a.detected_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">Sin cambios de disponibilidad en las ultimas 24 horas.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="removed_products">
+        <div class="table-wrap">
+          {% if c.removed_products %}
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Ultimo visto</th><th>Eliminado</th></tr></thead>
+            <tbody>
+              {% for r in c.removed_products %}
+              <tr data-search="{{ (r.title ~ ' ' ~ (r.sku or '')) | lower }}">
+                <td>{{ r.sku or "-" }}</td>
+                <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
+                <td>{{ r.last_seen }}</td>
+                <td>{{ r.removed_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">Ningun producto eliminado en las ultimas 24 horas.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="catalog">
+        <div class="table-wrap">
+          {% if c.catalog %}
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr></thead>
+            <tbody>
+              {% for p in c.catalog %}
+              <tr data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
+                <td>{{ p.sku or "-" }}</td>
+                <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+                <td>&euro;{{ "%.2f"|format(p.price) }}</td>
+                <td>{% if p.available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
+                <td>{{ p.captured_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">Sin productos todavia. Corre <code>python main.py</code> primero.</div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-  </section>
+  </div>
+  {% endmacro %}
 
-  <section>
-    <h2>Productos anadidos recientemente (ultimas 24 horas)</h2>
-    <div class="panel">
-      {% if new_products %}
-      <table>
-        <thead>
-          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Visto por primera vez</th></tr>
-        </thead>
-        <tbody>
-          {% for p in new_products %}
-          <tr data-competitor="{{ p.competitor }}" data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
-            <td>{{ p.competitor }}</td>
-            <td>{{ p.sku or "-" }}</td>
-            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
-            <td>{% if p.price is not none %}&euro;{{ "%.2f"|format(p.price) }}{% else %}-{% endif %}</td>
-            <td>
-              {% if p.available %}
-                <span class="badge available">Disponible</span>
-              {% else %}
-                <span class="badge unavailable">Agotado</span>
-              {% endif %}
-            </td>
-            <td>{{ p.first_seen }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty">Ningun producto nuevo en las ultimas 24 horas.</div>
-      {% endif %}
-    </div>
-  </section>
+  {% set mine = competitor_groups|selectattr('is_own_store')|list %}
+  {% set rivals = competitor_groups|rejectattr('is_own_store')|list %}
 
-  <section>
-    <h2>Cambios de precio (ultimas 24 horas)</h2>
-    <div class="panel">
-      {% if events %}
-      <table>
-        <thead>
-          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Cambio</th><th>Detectado</th></tr>
-        </thead>
-        <tbody>
-          {% for e in events %}
-          <tr data-competitor="{{ e.competitor }}" data-search="{{ (e.title ~ ' ' ~ (e.sku or '')) | lower }}">
-            <td>{{ e.competitor }}</td>
-            <td>{{ e.sku or "-" }}</td>
-            <td class="title">{{ e.title }}</td>
-            <td>&euro;{{ "%.2f"|format(e.old_price) }}</td>
-            <td>&euro;{{ "%.2f"|format(e.new_price) }}</td>
-            <td class="change {{ e.event_type }}">{{ "%+.1f"|format(e.percent_change) }}%</td>
-            <td>{{ e.detected_at }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty">Sin cambios de precio en las ultimas 24 horas.</div>
-      {% endif %}
-    </div>
-  </section>
+  <div class="group-heading mine">
+    <h2>Mis tiendas</h2>
+    <span class="group-tag">Tu propia web</span>
+  </div>
+  <div class="card-grid">
+    {% for c in mine %}{{ competitor_card(c) }}{% endfor %}
+    {% if not mine %}<div class="empty-note">Todavia no hay tiendas propias registradas.</div>{% endif %}
+  </div>
 
-  <section>
-    <h2>Cambios de disponibilidad (ultimas 24 horas)</h2>
-    <div class="panel">
-      {% if availability_events %}
-      <table>
-        <thead>
-          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr>
-        </thead>
-        <tbody>
-          {% for a in availability_events %}
-          <tr data-competitor="{{ a.competitor }}" data-search="{{ (a.title ~ ' ' ~ (a.sku or '')) | lower }}">
-            <td>{{ a.competitor }}</td>
-            <td>{{ a.sku or "-" }}</td>
-            <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
-            <td>
-              {% if a.was_available %}
-                <span class="badge available">Disponible</span>
-              {% else %}
-                <span class="badge unavailable">Agotado</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if a.now_available %}
-                <span class="badge available">Disponible</span>
-              {% else %}
-                <span class="badge unavailable">Agotado</span>
-              {% endif %}
-            </td>
-            <td>{{ a.detected_at }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty">Sin cambios de disponibilidad en las ultimas 24 horas.</div>
-      {% endif %}
-    </div>
-  </section>
-
-  <section>
-    <h2>Productos eliminados (ultimas 24 horas)</h2>
-    <div class="panel">
-      {% if removed_products %}
-      <table>
-        <thead>
-          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Ultimo visto</th><th>Eliminado</th></tr>
-        </thead>
-        <tbody>
-          {% for r in removed_products %}
-          <tr data-competitor="{{ r.competitor }}" data-search="{{ (r.title ~ ' ' ~ (r.sku or '')) | lower }}">
-            <td>{{ r.competitor }}</td>
-            <td>{{ r.sku or "-" }}</td>
-            <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
-            <td>{{ r.last_seen }}</td>
-            <td>{{ r.removed_at }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty">Ningun producto eliminado en las ultimas 24 horas.</div>
-      {% endif %}
-    </div>
-  </section>
-
-  <section>
-    <h2>Catalogo actual (<span class="section-count">{{ products|length }}</span> productos)</h2>
-    <div class="panel">
-      {% if products %}
-      <table>
-        <thead>
-          <tr><th>Competidor</th><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr>
-        </thead>
-        <tbody>
-          {% for p in products %}
-          <tr data-competitor="{{ p.competitor }}" data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
-            <td>{{ p.competitor }}</td>
-            <td>{{ p.sku or "-" }}</td>
-            <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
-            <td>&euro;{{ "%.2f"|format(p.price) }}</td>
-            <td>
-              {% if p.available %}
-                <span class="badge available">Disponible</span>
-              {% else %}
-                <span class="badge unavailable">Agotado</span>
-              {% endif %}
-            </td>
-            <td>{{ p.captured_at }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty">Sin productos todavia. Corre <code>python main.py</code> primero.</div>
-      {% endif %}
-    </div>
-  </section>
-
+  <div class="group-heading rivals">
+    <h2>Competencia</h2>
+    <span class="group-tag">Vigilancia externa</span>
+  </div>
+  <div class="card-grid">
+    {% for c in rivals %}{{ competitor_card(c) }}{% endfor %}
+    {% if not rivals %}<div class="empty-note">Todavia no hay competidores externos. Anade uno con db.add_competitor(...).</div>{% endif %}
+  </div>
 </main>
 <script>
-  const competitorFilter = document.getElementById("competitor-filter");
-  const productSearch = document.getElementById("product-search");
+  const searchInput = document.getElementById("product-search");
+  const cards = Array.from(document.querySelectorAll(".card"));
 
-  function applyFilters() {
-    const selectedCompetitor = competitorFilter.value;
-    const searchText = productSearch.value.trim().toLowerCase();
-    document.querySelectorAll("section").forEach(function (section) {
-      let visibleRows = 0;
-      section.querySelectorAll("tbody tr[data-competitor]").forEach(function (row) {
-        const competitorMatch = !selectedCompetitor || row.dataset.competitor === selectedCompetitor;
-        const searchMatch = !searchText || row.dataset.search === undefined
-          || row.dataset.search.includes(searchText);
-        const match = competitorMatch && searchMatch;
-        row.style.display = match ? "" : "none";
-        if (match) visibleRows++;
-      });
-      const countEl = section.querySelector(".section-count");
-      if (countEl) countEl.textContent = visibleRows;
+  function setActiveTab(card, tabKey) {
+    card.querySelectorAll(".tab-btn").forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.tab === tabKey);
+    });
+    card.querySelectorAll(".tab-panel").forEach(function (panel) {
+      panel.classList.toggle("active", panel.dataset.tab === tabKey);
     });
   }
 
-  competitorFilter.addEventListener("change", applyFilters);
-  productSearch.addEventListener("input", applyFilters);
+  function expandCard(card) { card.classList.add("expanded"); }
+  function collapseCard(card) { card.classList.remove("expanded"); }
 
   document.addEventListener("click", function (event) {
-    const row = event.target.closest("tbody tr");
-    if (!row) return;
-    const wasSelected = row.classList.contains("row-selected");
-    document.querySelectorAll("tr.row-selected").forEach(function (r) {
-      r.classList.remove("row-selected");
-    });
-    if (!wasSelected) row.classList.add("row-selected");
+    const toggleHead = event.target.closest('[data-action="toggle-card"]');
+    if (toggleHead) {
+      const card = toggleHead.closest(".card");
+      card.classList.toggle("expanded");
+      return;
+    }
+    const tabBtn = event.target.closest('[data-action="show-tab"]');
+    if (tabBtn) {
+      const card = tabBtn.closest(".card");
+      setActiveTab(card, tabBtn.dataset.tab);
+    }
   });
+
+  function applySearch() {
+    const q = searchInput.value.trim().toLowerCase();
+
+    cards.forEach(function (card) {
+      if (!q) {
+        card.classList.remove("no-match");
+        card.querySelectorAll("tbody tr[data-search]").forEach(function (row) {
+          row.style.display = "";
+        });
+        collapseCard(card);
+        return;
+      }
+
+      let cardHasMatch = false;
+      let firstMatchTab = null;
+
+      card.querySelectorAll(".tab-panel").forEach(function (panel) {
+        let panelHasMatch = false;
+        panel.querySelectorAll("tbody tr[data-search]").forEach(function (row) {
+          const match = row.dataset.search.includes(q);
+          row.style.display = match ? "" : "none";
+          if (match) panelHasMatch = true;
+        });
+        if (panelHasMatch) {
+          cardHasMatch = true;
+          if (!firstMatchTab) firstMatchTab = panel.dataset.tab;
+        }
+      });
+
+      card.classList.toggle("no-match", !cardHasMatch);
+      if (cardHasMatch) {
+        expandCard(card);
+        setActiveTab(card, firstMatchTab);
+      }
+    });
+  }
+
+  searchInput.addEventListener("input", applySearch);
 </script>
 </body>
 </html>
