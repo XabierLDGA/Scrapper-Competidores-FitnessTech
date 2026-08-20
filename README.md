@@ -46,8 +46,8 @@ mysql -h localhost -u root -p < migrations/001_initial_schema.sql
 copy .env.example .env
 ```
 
-Edita `.env` con tus credenciales de MySQL. `SLACK_BOT_TOKEN` es opcional: si
-se deja vacio, `Notifier` simplemente loguea y no intenta enviar nada a Slack.
+Edita `.env` con tus credenciales de MySQL. `N8N_WEBHOOK_URL` es opcional: si
+se deja vacio, `Notifier` simplemente loguea y no intenta enviar nada a n8n.
 
 ### 4. Anadir competidores
 
@@ -180,7 +180,9 @@ docker compose down -v    # borra tambien la base de datos
 - `src/detector.py` — Unica fuente de verdad para "es nuevo", "cambio de
   precio >= umbral" y "cambio de disponibilidad". El umbral de precio (5%
   por defecto) se decide aqui una sola vez; nada mas lo recalcula.
-- `src/notifier.py` — Envia alertas a Slack (o solo loguea si no hay token).
+- `src/notifier.py` — Envia el resumen diario a un webhook de n8n (o solo
+  loguea si `N8N_WEBHOOK_URL` no esta configurada). n8n decide a quien y
+  como avisar (hoy, por email); este modulo no sabe nada de destinatarios.
 - `src/db.py` — Acceso a MySQL. Convierte los `Decimal` que devuelve
   `mysql-connector` para columnas `DECIMAL` a `float` en la frontera con la
   BD, para que el resto del pipeline no tenga que lidiar con ese tipo.
@@ -214,8 +216,8 @@ docker compose down -v    # borra tambien la base de datos
    en MySQL.
 4. **Detectar** — Compara con el snapshot anterior: producto nuevo, cambio
    de precio (+-5%) o cambio de disponibilidad.
-5. **Alertar** — Notifica a Slack producto por producto segun se detecta.
-6. **Digest** — Al final, resumen diario leido desde la BD.
+5. **Alertar** — Al final, resumen diario (leido desde la BD) enviado a un
+   webhook de n8n.
 
 ## Troubleshooting
 
@@ -223,9 +225,9 @@ docker compose down -v    # borra tambien la base de datos
 - Verifica que MySQL esta corriendo: `mysql -u root -p -e "SELECT 1;"`
 - Comprueba credenciales y host/puerto en `.env`.
 
-**"Slack no configurado"**
-- Obten un token en https://api.slack.com/apps con permisos `chat:write` y
-  `chat:write.public`, y ponlo en `SLACK_BOT_TOKEN`.
+**"N8N_WEBHOOK_URL no configurado"**
+- Pon la URL del nodo Webhook del workflow de n8n en `N8N_WEBHOOK_URL`. Sin
+  ella, el resumen diario se loguea pero no se envia a ningun sitio.
 
 **El crawler corre pero no genera productos nuevos en una segunda ejecucion
 el mismo dia**
