@@ -349,7 +349,10 @@
         {% endif %}
       </span>
       <span class="card-title">
-        <span class="name">{{ c.name }} {{ flags.get(c.country, '') }}</span>
+        <span class="name">
+          {{ c.name }}
+          {% if c.country and c.country.upper() not in c.name.upper() %}{{ flags.get(c.country, c.country) }}{% endif %}
+        </span>
         <span class="meta">
           {{ c.total_products }} en catalogo
           &middot; ultimo crawl: {{ c.last_crawled or "nunca" }}

@@ -6,6 +6,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: mysql
+      SCRIPT_NAME: /competencia
     networks:
       - proxy
       - backend

@@ -15,6 +15,26 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-local-only")
 
+
+class PrefixMiddleware:
+    """Antepone SCRIPT_NAME a las URLs generadas por Flask (url_for, favicon,
+    /static/...) cuando la app vive detras de un proxy que le quita un
+    prefijo antes de reenviar la peticion (Traefik con stripprefix aqui).
+    Sin esto, url_for genera rutas absolutas como /static/logos/x.png que
+    no coinciden con el PathPrefix(/competencia) del router y dan 404."""
+
+    def __init__(self, wsgi_app, prefix=""):
+        self.wsgi_app = wsgi_app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+        if self.prefix:
+            environ["SCRIPT_NAME"] = self.prefix
+        return self.wsgi_app(environ, start_response)
+
+
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=os.getenv("SCRIPT_NAME", ""))
+
 OWN_STORES = {"Fitness Tech", "Fitness Tech FR", "Fitness Tech PT"}
 COMPETITOR_LOGOS = {
     "Fitness Tech": "fitnesstech-es.png",
