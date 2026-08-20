@@ -387,3 +387,21 @@ class Database:
                 return rows
             finally:
                 cursor.close()
+
+    def log_crawl_error(self, competitor_name: str, error_message: str):
+        """Persiste un fallo completo de crawl de un competidor.
+
+        n8n consulta esta tabla cada tarde (18:00 Europe/Madrid) para el
+        email de errores del dia; no tiene relacion con el resumen diario
+        de productos/precios, que se dispara aparte via webhook."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    INSERT INTO crawl_errors (competitor_name, error_message)
+                    VALUES (%s, %s)
+                """, (competitor_name, error_message))
+                conn.commit()
+                logger.info(f"Error de crawl registrado para {competitor_name}")
+            finally:
+                cursor.close()
