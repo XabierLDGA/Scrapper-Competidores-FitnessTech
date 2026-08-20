@@ -15,8 +15,9 @@ services:
       - "traefik.http.routers.competencia.rule=Host(`${DASHBOARD_HOST}`) && PathPrefix(`/competencia`)"
       - "traefik.http.routers.competencia.entrypoints=websecure"
       - "traefik.http.routers.competencia.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.competencia.middlewares=competencia-auth"
+      - "traefik.http.routers.competencia.middlewares=competencia-auth,competencia-strip"
       - "traefik.http.middlewares.competencia-auth.basicauth.users=${DASHBOARD_BASIC_AUTH}"
+      - "traefik.http.middlewares.competencia-strip.stripprefix.prefixes=/competencia"
       - "traefik.http.services.competencia.loadbalancer.server.port=5000"
 
   crawler:
