@@ -71,19 +71,9 @@
   }
   .brand-mark {
     flex: none;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: var(--brand);
-    box-shadow: var(--bevel);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #06181a;
-    letter-spacing: -0.02em;
+    height: 28px;
+    width: auto;
+    display: block;
   }
   header h1 {
     margin: 0;
@@ -434,7 +424,7 @@
 <body>
 <header>
   <div class="brand">
-    <div class="brand-mark" aria-hidden="true">FT</div>
+    <img class="brand-mark" src="{{ url_for('static', filename='logos/fitnesstech-brand.png') }}" alt="FitnessTech">
     <div>
       <h1>Vigilancia de competencia</h1>
       <p>MySQL local &middot; sin tiempo real &middot; se actualiza al recargar</p>
