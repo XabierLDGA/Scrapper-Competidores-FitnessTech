@@ -143,9 +143,10 @@ async def main() -> dict:
                 # crawler no borra productos que en realidad siguen a la venta.
                 db.mark_missing_products_removed(competitor["id"])
 
-            except Exception:
+            except Exception as exc:
                 logger.exception(f"  Error crawleando {competitor['name']}")
                 errors.append(competitor["name"])
+                db.log_crawl_error(competitor["name"], str(exc))
     finally:
         # Cierra Chromium si crawl_magento_categories llego a abrirlo; no
         # hace nada si ningun competidor lo necesito (close() es segura de
