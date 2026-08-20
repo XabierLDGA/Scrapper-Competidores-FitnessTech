@@ -6,19 +6,21 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%88</text></svg>">
 <style>
   :root {
-    --bg: #f5f7f8;
-    --panel: #ffffff;
-    --panel-soft: #f0f2f4;
-    --border: #e3e7ea;
-    --text: #14181f;
-    --muted: #667085;
-    --accent: #0d9488;
-    --accent-dark: #0b7a70;
-    --accent-soft: rgba(13, 148, 136, 0.12);
-    --green: #16a34a;
-    --green-soft: rgba(22, 163, 74, 0.12);
-    --red: #dc2626;
-    --red-soft: rgba(220, 38, 38, 0.1);
+    --bg: #0f0f0f;
+    --header-bg: #1b1b1d;
+    --header-text: #ffffff;
+    --panel: #1b1b1d;
+    --panel-soft: #262628;
+    --border: #4a4a4f;
+    --text: #f2f2f2;
+    --muted: #9a9a9e;
+    --accent: #00a7b0;
+    --accent-dark: #00838a;
+    --accent-soft: rgba(0, 167, 176, 0.18);
+    --green: #22c55e;
+    --green-soft: rgba(34, 197, 94, 0.16);
+    --red: #f87171;
+    --red-soft: rgba(248, 113, 113, 0.14);
     --radius-lg: 18px;
     --radius-md: 12px;
     --shadow: 0 1px 2px rgba(20, 24, 31, 0.04), 0 8px 24px -12px rgba(20, 24, 31, 0.12);
@@ -32,8 +34,9 @@
   }
   header {
     padding: 20px 32px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
+    background: var(--header-bg);
+    color: var(--header-text);
+    border-bottom: 3px solid #ffffff;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -44,11 +47,12 @@
     margin: 0;
     font-size: 1.3rem;
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
   header p {
     margin: 2px 0 0;
-    color: var(--muted);
+    color: #b8b8b8;
     font-size: 0.85rem;
   }
   .header-controls {
@@ -82,15 +86,22 @@
     font-weight: 700;
     cursor: pointer;
     box-shadow: var(--shadow);
+    transition: background 0.15s ease, transform 0.1s ease;
   }
   .crawl-btn:hover { background: var(--accent-dark); }
+  .crawl-btn:active { transform: scale(0.96); }
   .crawl-btn:disabled { opacity: 0.6; cursor: wait; }
+  @keyframes flash-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .flash {
     margin: 20px 32px 0;
     padding: 12px 18px;
     border-radius: var(--radius-md);
     font-size: 0.9rem;
     font-weight: 600;
+    animation: flash-in 0.25s ease;
   }
   .flash.success { background: var(--green-soft); color: var(--green); }
   .flash.error { background: var(--red-soft); color: var(--red); }
@@ -108,23 +119,16 @@
   }
   .group-heading h2 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 800;
-  }
-  .group-heading .group-tag {
-    font-size: 0.72rem;
-    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 3px 10px;
-    border-radius: 999px;
+    letter-spacing: 0.03em;
+    color: var(--text);
   }
-  .group-heading.mine .group-tag { background: var(--accent-soft); color: var(--accent-dark); }
-  .group-heading.rivals .group-tag { background: var(--panel-soft); color: var(--muted); }
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: 1fr;
     gap: 16px;
   }
   .empty-note {
@@ -136,11 +140,16 @@
   .card {
     grid-column: span 1;
     background: var(--panel);
-    border: 1px solid var(--border);
+    border: 3px solid #e5e5e5;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 16px 32px -12px rgba(0, 0, 0, 0.35);
+    border-color: var(--accent);
   }
   .card.expanded { grid-column: 1 / -1; }
   .card.no-match { display: none; }
@@ -148,8 +157,8 @@
   .card-head {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 18px;
+    gap: 20px;
+    padding: 20px 28px;
     cursor: pointer;
     background: none;
     border: none;
@@ -160,14 +169,15 @@
   }
   .card-logo {
     flex: none;
-    width: 64px;
-    height: 64px;
+    width: 180px;
+    height: 180px;
     border-radius: var(--radius-md);
-    background: var(--panel-soft);
+    background: #eef0f0;
+    border: 2px solid #a8adb3;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    padding: 12px;
   }
   .card-logo img {
     max-width: 100%;
@@ -185,40 +195,45 @@
     min-width: 0;
   }
   .card-title .name {
-    font-weight: 700;
-    font-size: 1rem;
+    font-weight: 800;
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
   .card-title .meta {
-    margin-top: 2px;
+    margin-top: 4px;
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
   .card-chevron {
     flex: none;
-    color: var(--muted);
-    transition: transform 0.15s ease;
-    font-size: 1.1rem;
+    color: var(--text);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-size: 2.6rem;
+    line-height: 1;
   }
   .card.expanded .card-chevron { transform: rotate(180deg); }
 
   .card-stats {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
     padding: 0 18px 16px;
   }
   .chip {
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 6px 12px;
+    border-radius: 6px;
     background: var(--panel-soft);
     color: var(--muted);
   }
-  .chip.active { background: var(--accent-soft); color: var(--accent-dark); }
+  .chip.active { background: var(--accent); color: #fff; }
   .chip.up { background: var(--red-soft); color: var(--red); }
   .chip.down { background: var(--green-soft); color: var(--green); }
 
@@ -245,12 +260,17 @@
     padding: 8px 14px;
     border-radius: 999px;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
   }
-  .tab-btn:hover { background: rgba(20, 24, 31, 0.04); }
+  .tab-btn:hover { background: rgba(255, 255, 255, 0.08); }
   .tab-btn.active { background: var(--accent); color: #fff; }
 
+  @keyframes tab-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .tab-panel { display: none; padding: 12px 18px 18px; }
-  .tab-panel.active { display: block; }
+  .tab-panel.active { display: block; animation: tab-fade-in 0.2s ease; }
 
   .table-wrap {
     background: var(--panel);
@@ -269,7 +289,7 @@
     border-bottom: 1px solid var(--border);
   }
   tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
-  tbody tr:hover { background: rgba(13, 148, 136, 0.04); }
+  tbody tr:hover { background: rgba(0, 167, 176, 0.1); }
   td.title, td.url { white-space: normal; max-width: 380px; }
   .table-empty { color: var(--muted); padding: 18px 14px; font-size: 0.85rem; }
 
@@ -284,7 +304,7 @@
   .badge.unavailable { background: var(--red-soft); color: var(--red); }
   .change.increase { color: var(--red); font-weight: 700; }
   .change.decrease { color: var(--green); font-weight: 700; }
-  a { color: var(--accent-dark); text-decoration: none; }
+  a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
 </style>
 </head>
@@ -311,11 +331,11 @@
 <main>
   {% set flags = {'ES': '🇪🇸', 'FR': '🇫🇷', 'PT': '🇵🇹'} %}
   {% set tabs = [
+    ('catalog', 'Catalogo'),
     ('new_products', 'Nuevos'),
     ('price_events', 'Cambios de precio'),
     ('availability_events', 'Disponibilidad'),
     ('removed_products', 'Eliminados'),
-    ('catalog', 'Catalogo'),
   ] %}
 
   {% macro competitor_card(c) %}
@@ -352,7 +372,30 @@
         {% endfor %}
       </div>
 
-      <div class="tab-panel active" data-tab="new_products">
+      <div class="tab-panel active" data-tab="catalog">
+        <div class="table-wrap">
+          {% if c.catalog %}
+          <table>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr></thead>
+            <tbody>
+              {% for p in c.catalog %}
+              <tr data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
+                <td>{{ p.sku or "-" }}</td>
+                <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+                <td>&euro;{{ "%.2f"|format(p.price) }}</td>
+                <td>{% if p.available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
+                <td>{{ p.captured_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">Sin productos todavia. Corre <code>python main.py</code> primero.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="new_products">
         <div class="table-wrap">
           {% if c.new_products %}
           <table>
@@ -444,28 +487,6 @@
         </div>
       </div>
 
-      <div class="tab-panel" data-tab="catalog">
-        <div class="table-wrap">
-          {% if c.catalog %}
-          <table>
-            <thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr></thead>
-            <tbody>
-              {% for p in c.catalog %}
-              <tr data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
-                <td>{{ p.sku or "-" }}</td>
-                <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
-                <td>&euro;{{ "%.2f"|format(p.price) }}</td>
-                <td>{% if p.available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
-                <td>{{ p.captured_at }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty">Sin productos todavia. Corre <code>python main.py</code> primero.</div>
-          {% endif %}
-        </div>
-      </div>
     </div>
   </div>
   {% endmacro %}
@@ -473,27 +494,28 @@
   {% set mine = competitor_groups|selectattr('is_own_store')|list %}
   {% set rivals = competitor_groups|rejectattr('is_own_store')|list %}
 
-  <div class="group-heading mine">
-    <h2>Mis tiendas</h2>
-    <span class="group-tag">Tu propia web</span>
-  </div>
-  <div class="card-grid">
-    {% for c in mine %}{{ competitor_card(c) }}{% endfor %}
-    {% if not mine %}<div class="empty-note">Todavia no hay tiendas propias registradas.</div>{% endif %}
-  </div>
-
   <div class="group-heading rivals">
     <h2>Competencia</h2>
-    <span class="group-tag">Vigilancia externa</span>
   </div>
   <div class="card-grid">
     {% for c in rivals %}{{ competitor_card(c) }}{% endfor %}
     {% if not rivals %}<div class="empty-note">Todavia no hay competidores externos. Anade uno con db.add_competitor(...).</div>{% endif %}
+    <div class="empty-note no-results-note" style="display:none;">Ninguna coincidencia en competencia.</div>
+  </div>
+
+  <div class="group-heading mine">
+    <h2>Mis tiendas</h2>
+  </div>
+  <div class="card-grid">
+    {% for c in mine %}{{ competitor_card(c) }}{% endfor %}
+    {% if not mine %}<div class="empty-note">Todavia no hay tiendas propias registradas.</div>{% endif %}
+    <div class="empty-note no-results-note" style="display:none;">Ninguna coincidencia en mis tiendas.</div>
   </div>
 </main>
 <script>
   const searchInput = document.getElementById("product-search");
   const cards = Array.from(document.querySelectorAll(".card"));
+  const cardGrids = Array.from(document.querySelectorAll(".card-grid"));
 
   function setActiveTab(card, tabKey) {
     card.querySelectorAll(".tab-btn").forEach(function (btn) {
@@ -555,6 +577,16 @@
         expandCard(card);
         setActiveTab(card, firstMatchTab);
       }
+    });
+
+    cardGrids.forEach(function (grid) {
+      const gridCards = Array.from(grid.querySelectorAll(".card"));
+      const note = grid.querySelector(".no-results-note");
+      if (!note) return;
+      const noneVisible = q && gridCards.length > 0 && gridCards.every(function (card) {
+        return card.classList.contains("no-match");
+      });
+      note.style.display = noneVisible ? "" : "none";
     });
   }
 
