@@ -36,7 +36,7 @@ async def crawl_competitor_products(crawler: Crawler, competitor: dict) -> tuple
     return products, "html"
 
 
-async def process_product(db: Database, detector: ChangeDetector, notifier: Notifier,
+async def process_product(db: Database, detector: ChangeDetector,
                            product: dict, competitor_id: int, competitor_name: str) -> None:
     product_id = db.insert_or_update_product(
         competitor_id=competitor_id,
@@ -61,7 +61,6 @@ async def process_product(db: Database, detector: ChangeDetector, notifier: Noti
 
     if detector.detect_new_product(old_snapshot):
         logger.info(f"    [nuevo] {product['title'][:60]}")
-        notifier.send_slack_new_product(product, competitor_name)
         return
 
     price_change = detector.detect_price_change(old_snapshot, product)
@@ -76,13 +75,6 @@ async def process_product(db: Database, detector: ChangeDetector, notifier: Noti
             old_price=price_change["old_price"],
             new_price=price_change["new_price"],
             percent_change=price_change["percent_change"],
-        )
-        notifier.send_slack_price_change(
-            product,
-            price_change["old_price"],
-            price_change["new_price"],
-            price_change["percent_change"],
-            competitor_name,
         )
 
     availability_change = detector.detect_availability_change(old_snapshot, product)
@@ -106,7 +98,7 @@ async def main() -> dict:
     crawler = Crawler()
     normalizer = Normalizer(currency="EUR", country="ES")
     detector = ChangeDetector(price_change_threshold=5.0)
-    notifier = Notifier(slack_token=os.getenv("SLACK_BOT_TOKEN"))
+    notifier = Notifier(webhook_url=os.getenv("N8N_WEBHOOK_URL"))
 
     logger.info("=" * 60)
     logger.info("Iniciando crawl de competidores")
@@ -133,7 +125,7 @@ async def main() -> dict:
 
                 for product in normalized:
                     try:
-                        await process_product(db, detector, notifier, product,
+                        await process_product(db, detector, product,
                                                competitor["id"], competitor["name"])
                     except Exception:
                         logger.exception(f"    Error procesando producto {product.get('title', 'Unknown')}")
