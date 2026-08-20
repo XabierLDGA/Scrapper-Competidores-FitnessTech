@@ -2,58 +2,103 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vigilancia de competencia — FitnessTech</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%88</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f0f0f;
-    --header-bg: #1b1b1d;
-    --header-text: #ffffff;
-    --panel: #1b1b1d;
-    --panel-soft: #262628;
-    --border: #4a4a4f;
-    --text: #f2f2f2;
-    --muted: #9a9a9e;
-    --accent: #00a7b0;
-    --accent-dark: #00838a;
-    --accent-soft: rgba(0, 167, 176, 0.18);
-    --green: #22c55e;
-    --green-soft: rgba(34, 197, 94, 0.16);
-    --red: #f87171;
-    --red-soft: rgba(248, 113, 113, 0.14);
-    --radius-lg: 18px;
-    --radius-md: 12px;
-    --shadow: 0 1px 2px rgba(20, 24, 31, 0.04), 0 8px 24px -12px rgba(20, 24, 31, 0.12);
+    --bg: #121316;
+    --panel: #1a1c20;
+    --panel-soft: #24262b;
+    --border: #34363c;
+    --edge-hi: #3d4046;
+    --text: #eef0f2;
+    --muted: #888d95;
+
+    --brand: #00a7b0;
+    --brand-dark: #027d84;
+    --brand-soft: rgba(0, 167, 176, 0.16);
+    --rival: #e5484d;
+    --rival-soft: rgba(229, 72, 77, 0.14);
+    --hazard: #d9a334;
+    --green: #34d399;
+    --green-soft: rgba(52, 211, 153, 0.14);
+    --price-up: #f87171;
+    --price-up-soft: rgba(248, 113, 113, 0.14);
+
+    --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+    --font-body: 'Archivo', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+    --radius-lg: 10px;
+    --radius-md: 6px;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
+    --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.04), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-body);
     background: var(--bg);
     color: var(--text);
   }
+  a { color: var(--brand); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Cabecera ---------- */
   header {
-    padding: 20px 32px;
-    background: var(--header-bg);
-    color: var(--header-text);
-    border-bottom: 3px solid #ffffff;
+    padding: 18px 32px;
+    background: var(--panel);
+    color: var(--text);
+    border-bottom: 3px solid var(--brand);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
   }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-mark {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--brand);
+    box-shadow: var(--bevel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #06181a;
+    letter-spacing: -0.02em;
+  }
   header h1 {
     margin: 0;
-    font-size: 1.3rem;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
   header p {
     margin: 2px 0 0;
-    color: #b8b8b8;
-    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    color: var(--muted);
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
   }
   .header-controls {
     display: flex;
@@ -64,33 +109,38 @@
   .product-search {
     background: var(--panel-soft);
     color: var(--text);
+    font-family: var(--font-body);
     border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 10px 16px;
-    font-size: 0.9rem;
-    width: 260px;
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    width: 240px;
   }
   .product-search::placeholder { color: var(--muted); }
   .product-search:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--brand);
     background: var(--panel);
   }
   .crawl-btn {
-    background: var(--accent);
-    color: #fff;
+    background: var(--brand);
+    color: #06181a;
     border: none;
-    border-radius: 999px;
-    padding: 11px 20px;
-    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+    padding: 11px 18px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     cursor: pointer;
-    box-shadow: var(--shadow);
+    box-shadow: var(--bevel);
     transition: background 0.15s ease, transform 0.1s ease;
   }
-  .crawl-btn:hover { background: var(--accent-dark); }
-  .crawl-btn:active { transform: scale(0.96); }
+  .crawl-btn:hover { background: #17c2cc; }
+  .crawl-btn:active { transform: scale(0.97); }
   .crawl-btn:disabled { opacity: 0.6; cursor: wait; }
+
   @keyframes flash-in {
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
@@ -99,66 +149,84 @@
     margin: 20px 32px 0;
     padding: 12px 18px;
     border-radius: var(--radius-md);
+    border: 1px solid transparent;
     font-size: 0.9rem;
     font-weight: 600;
     animation: flash-in 0.25s ease;
   }
-  .flash.success { background: var(--green-soft); color: var(--green); }
-  .flash.error { background: var(--red-soft); color: var(--red); }
+  .flash.success { background: var(--green-soft); color: var(--green); border-color: rgba(52, 211, 153, 0.3); }
+  .flash.error { background: var(--price-up-soft); color: var(--price-up); border-color: rgba(248, 113, 113, 0.3); }
 
+  /* ---------- Contenido ---------- */
   main {
     padding: 8px 32px 64px;
-    max-width: 1200px;
+    max-width: 1100px;
     margin: 0 auto;
   }
+
   .group-heading {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin: 36px 0 16px;
+    margin: 40px 0 16px;
   }
   .group-heading h2 {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: var(--text);
   }
 
+  /* Franja de separacion entre secciones, en el lenguaje de las cintas de
+     aviso de las jaulas y racks que vende la propia tienda. */
+  .section-divider {
+    height: 5px;
+    margin: 44px 0 0;
+    border-radius: 3px;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--hazard) 0 10px,
+      #1a1a1a 10px 20px
+    );
+    opacity: 0.55;
+  }
+
   .card-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 14px;
   }
   .empty-note {
     color: var(--muted);
-    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
     padding: 16px 4px;
   }
 
+  /* ---------- Tarjeta de competidor ---------- */
   .card {
+    position: relative;
     grid-column: span 1;
     background: var(--panel);
-    border: 3px solid #e5e5e5;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--brand);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
-    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
+  .card.card--rival { border-top-color: var(--rival); }
   .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 16px 32px -12px rgba(0, 0, 0, 0.35);
-    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 20px 36px -16px rgba(0, 0, 0, 0.65);
   }
-  .card.expanded { grid-column: 1 / -1; }
   .card.no-match { display: none; }
 
   .card-head {
     display: flex;
     align-items: center;
     gap: 20px;
-    padding: 20px 28px;
+    padding: 18px 24px;
     cursor: pointer;
     background: none;
     border: none;
@@ -169,73 +237,96 @@
   }
   .card-logo {
     flex: none;
-    width: 180px;
-    height: 180px;
+    width: 108px;
+    height: 108px;
     border-radius: var(--radius-md);
     background: #eef0f0;
-    border: 2px solid #a8adb3;
+    box-shadow: var(--bevel), 0 0 0 1px #a8adb3;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
+    padding: 10px;
   }
   .card-logo img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    border-radius: 6px;
+    border-radius: 4px;
   }
   .card-logo.placeholder {
-    font-weight: 800;
+    font-family: var(--font-mono);
+    font-weight: 700;
     font-size: 1.1rem;
-    color: var(--accent-dark);
+    color: var(--brand-dark);
   }
-  .card-title {
-    flex: 1;
-    min-width: 0;
-  }
+
+  .card-title { flex: 1; min-width: 0; }
   .card-title .name {
-    font-weight: 800;
-    font-size: 1.25rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.3rem;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+  }
+  /* Insignia de pais: sustituye a la bandera emoji (Windows la renderiza
+     como texto suelto, no como bandera) por un disco troquelado, en el
+     mismo lenguaje visual que un disco de peso de la sala de musculacion. */
+  .plate-badge {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #3a3d43, #1b1c1f 70%);
+    box-shadow: 0 0 0 1px var(--edge-hi), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--muted);
   }
   .card-title .meta {
-    margin-top: 4px;
+    margin-top: 5px;
+    font-family: var(--font-mono);
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
   }
+
   .card-chevron {
     flex: none;
-    color: var(--text);
+    color: var(--muted);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    font-size: 2.6rem;
+    font-size: 1.6rem;
     line-height: 1;
   }
-  .card.expanded .card-chevron { transform: rotate(180deg); }
+  .card.expanded .card-chevron { transform: rotate(180deg); color: var(--brand); }
 
   .card-stats {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
-    padding: 0 18px 16px;
   }
   .chip {
-    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 6px 12px;
-    border-radius: 6px;
+    letter-spacing: 0.02em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border-left: 3px solid var(--border);
     background: var(--panel-soft);
     color: var(--muted);
+    white-space: nowrap;
   }
-  .chip.active { background: var(--accent); color: #fff; }
-  .chip.up { background: var(--red-soft); color: var(--red); }
-  .chip.down { background: var(--green-soft); color: var(--green); }
+  .chip--new { border-left-color: var(--brand); color: var(--brand); }
+  .chip--price { border-left-color: var(--hazard); color: var(--hazard); }
+  .chip--availability { border-left-color: var(--green); color: var(--green); }
 
   .card-detail {
     display: none;
@@ -246,30 +337,33 @@
 
   .tabs {
     display: flex;
-    gap: 4px;
-    padding: 12px 18px 0;
+    gap: 2px;
+    padding: 14px 24px 0;
     flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
   }
   .tab-btn {
     background: none;
     border: none;
-    font: inherit;
-    font-size: 0.82rem;
-    font-weight: 700;
+    border-bottom: 2px solid transparent;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
     color: var(--muted);
-    padding: 8px 14px;
-    border-radius: 999px;
+    padding: 8px 12px 10px;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: color 0.15s ease, border-color 0.15s ease;
   }
-  .tab-btn:hover { background: rgba(255, 255, 255, 0.08); }
-  .tab-btn.active { background: var(--accent); color: #fff; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--brand); border-color: var(--brand); }
 
   @keyframes tab-fade-in {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .tab-panel { display: none; padding: 12px 18px 18px; }
+  .tab-panel { display: none; padding: 16px 24px 22px; }
   .tab-panel.active { display: block; animation: tab-fade-in 0.2s ease; }
 
   .table-wrap {
@@ -282,37 +376,66 @@
   th, td { padding: 10px 14px; text-align: left; white-space: nowrap; }
   th {
     color: var(--muted);
-    font-weight: 700;
-    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     border-bottom: 1px solid var(--border);
   }
   tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
-  tbody tr:hover { background: rgba(0, 167, 176, 0.1); }
-  td.title, td.url { white-space: normal; max-width: 380px; }
-  .table-empty { color: var(--muted); padding: 18px 14px; font-size: 0.85rem; }
+  tbody tr:hover { background: rgba(0, 167, 176, 0.08); }
+  td.title, td.url { white-space: normal; max-width: 380px; font-weight: 500; }
+  td:not(.title) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .table-empty { color: var(--muted); font-family: var(--font-mono); padding: 18px 14px; font-size: 0.82rem; }
 
   .badge {
     display: inline-block;
-    padding: 2px 9px;
-    border-radius: 999px;
-    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
   }
-  .badge.available { background: var(--green-soft); color: var(--green); }
-  .badge.unavailable { background: var(--red-soft); color: var(--red); }
-  .change.increase { color: var(--red); font-weight: 700; }
-  .change.decrease { color: var(--green); font-weight: 700; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  .badge.available { background: var(--green-soft); color: var(--green); border-color: rgba(52, 211, 153, 0.3); }
+  .badge.unavailable { background: var(--price-up-soft); color: var(--price-up); border-color: rgba(248, 113, 113, 0.3); }
+  .change { font-weight: 700; }
+  .change.increase { color: var(--price-up); }
+  .change.decrease { color: var(--green); }
+  .change.increase::before { content: "▲ "; }
+  .change.decrease::before { content: "▼ "; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    header, .flash, main { padding-left: 18px; padding-right: 18px; }
+    .card-head { padding: 16px; gap: 14px; }
+    .card-logo { width: 72px; height: 72px; }
+    .card-title .name { font-size: 1.05rem; }
+    .card-stats { display: none; }
+    .product-search { width: 100%; }
+    .header-controls { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>Vigilancia de competencia</h1>
-    <p>Vista local de MySQL &mdash; se actualiza al recargar la pagina, no es en tiempo real</p>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">FT</div>
+    <div>
+      <h1>Vigilancia de competencia</h1>
+      <p>MySQL local &middot; sin tiempo real &middot; se actualiza al recargar</p>
+    </div>
   </div>
   <div class="header-controls">
     <input type="text" id="product-search" class="product-search"
@@ -329,17 +452,16 @@
   {% endfor %}
 {% endwith %}
 <main>
-  {% set flags = {'ES': '🇪🇸', 'FR': '🇫🇷', 'PT': '🇵🇹'} %}
   {% set tabs = [
     ('catalog', 'Catalogo'),
     ('new_products', 'Nuevos'),
-    ('price_events', 'Cambios de precio'),
+    ('price_events', 'Precio'),
     ('availability_events', 'Disponibilidad'),
     ('removed_products', 'Eliminados'),
   ] %}
 
   {% macro competitor_card(c) %}
-  <div class="card" data-name="{{ c.name }}">
+  <div class="card{{ '' if c.is_own_store else ' card--rival' }}" data-name="{{ c.name }}">
     <button type="button" class="card-head" data-action="toggle-card">
       <span class="card-logo{{ '' if c.logo else ' placeholder' }}">
         {% if c.logo %}
@@ -355,17 +477,16 @@
       <span class="card-title">
         <span class="name">
           {{ display_name }}
-          {% if c.country %}{{ flags.get(c.country, c.country) }}{% endif %}
+          {% if c.country %}<span class="plate-badge" aria-label="Pais: {{ c.country }}">{{ c.country }}</span>{% endif %}
         </span>
         <span class="meta">
-          {{ c.total_products }} en catalogo
-          &middot; ultimo crawl: {{ c.last_crawled or "nunca" }}
+          {{ c.total_products }} en catalogo &middot; ultimo crawl: {{ c.last_crawled or "nunca" }}
         </span>
       </span>
-      <span class="card-stats" style="padding:0;">
-        {% if c.new_products %}<span class="chip active">{{ c.new_products|length }} nuevos</span>{% endif %}
-        {% if c.price_events %}<span class="chip up">{{ c.price_events|length }} cambios de precio</span>{% endif %}
-        {% if c.availability_events %}<span class="chip down">{{ c.availability_events|length }} disponibilidad</span>{% endif %}
+      <span class="card-stats">
+        {% if c.new_products %}<span class="chip chip--new">{{ c.new_products|length }} nuevos</span>{% endif %}
+        {% if c.price_events %}<span class="chip chip--price">{{ c.price_events|length }} precio</span>{% endif %}
+        {% if c.availability_events %}<span class="chip chip--availability">{{ c.availability_events|length }} disp.</span>{% endif %}
       </span>
       <span class="card-chevron">&#9662;</span>
     </button>
@@ -509,6 +630,8 @@
     {% if not rivals %}<div class="empty-note">Todavia no hay competidores externos. Anade uno con db.add_competitor(...).</div>{% endif %}
     <div class="empty-note no-results-note" style="display:none;">Ninguna coincidencia en competencia.</div>
   </div>
+
+  <div class="section-divider" aria-hidden="true"></div>
 
   <div class="group-heading mine">
     <h2>Mis tiendas</h2>
