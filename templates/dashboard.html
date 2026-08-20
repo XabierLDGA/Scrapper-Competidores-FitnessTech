@@ -348,10 +348,14 @@
           {{ c.name[:2]|upper }}
         {% endif %}
       </span>
+      {% set display_name = c.name %}
+      {% if c.country and c.name.split()[-1].upper() == c.country.upper() %}
+        {% set display_name = c.name.rsplit(' ', 1)[0] %}
+      {% endif %}
       <span class="card-title">
         <span class="name">
-          {{ c.name }}
-          {% if c.country and c.name.split()[-1].upper() != c.country.upper() %}{{ flags.get(c.country, c.country) }}{% endif %}
+          {{ display_name }}
+          {% if c.country %}{{ flags.get(c.country, c.country) }}{% endif %}
         </span>
         <span class="meta">
           {{ c.total_products }} en catalogo
