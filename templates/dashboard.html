@@ -351,7 +351,7 @@
       <span class="card-title">
         <span class="name">
           {{ c.name }}
-          {% if c.country and c.country.upper() not in c.name.upper() %}{{ flags.get(c.country, c.country) }}{% endif %}
+          {% if c.country and c.name.split()[-1].upper() != c.country.upper() %}{{ flags.get(c.country, c.country) }}{% endif %}
         </span>
         <span class="meta">
           {{ c.total_products }} en catalogo
