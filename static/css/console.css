@@ -42,11 +42,11 @@
   --ink-3: #7a868d;
   --mark: #46525a;
 
-  /* Ambar: estado del sistema. Nav activa, foco, "en linea", barrido. */
-  --amber: #f0a500;
-  --amber-ink: #120d02;
-  --amber-wash: rgba(240, 165, 0, 0.11);
-  --amber-line: rgba(240, 165, 0, 0.32);
+  /* Turquesa de marca: estado del sistema. Nav activa, foco, "en linea", barrido. */
+  --accent: #00a7af;
+  --accent-ink: #00181a;
+  --accent-wash: rgba(0, 167, 175, 0.13);
+  --accent-line: rgba(0, 167, 175, 0.38);
 
   /* Rojo: reservado a la competencia externa y a las subidas de precio. */
   --signal: #e5484d;
@@ -54,7 +54,7 @@
   --signal-line: rgba(229, 72, 77, 0.34);
 
   /* Lecturas de dato. */
-  --good: #3fb98b;
+  --good: #3fbe72;
   --info: #4da3ff;
 
   /* Rampa secuencial de un solo tono para el mapa de calor. Generada en
@@ -64,12 +64,12 @@
      no deja ninguna celda ilegible porque cada una lleva su cifra impresa
      (tinta clara en los pasos 1-3, oscura en los 4-6: todos por encima de
      4,5:1). */
-  --heat-1: #493000;
-  --heat-2: #6b4701;
-  --heat-3: #8e6004;
-  --heat-4: #b47a00;
-  --heat-5: #da9602;
-  --heat-6: #ffb42c;
+  --heat-1: #013e41;
+  --heat-2: #00585d;
+  --heat-3: #06747a;
+  --heat-4: #07979e;
+  --heat-5: #08bbc4;
+  --heat-6: #36dde6;
 
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
   --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -99,7 +99,7 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: none; }
 
 :focus-visible {
-  outline: 1px solid var(--amber);
+  outline: 1px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -180,14 +180,14 @@ button { font: inherit; color: inherit; background: none; border: none; }
   width: 22px; height: 22px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--amber-line);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r);
-  background: var(--amber-wash);
+  background: var(--accent-wash);
   font-family: var(--mono);
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .rail__name {
@@ -261,7 +261,7 @@ button { font: inherit; color: inherit; background: none; border: none; }
 }
 
 .search::placeholder { color: var(--mark); }
-.search:focus { outline: none; border-color: var(--amber-line); background: var(--surface-2); }
+.search:focus { outline: none; border-color: var(--accent-line); background: var(--surface-2); }
 .search::-webkit-search-cancel-button { display: none; }
 
 /* Pista de atajo: desaparece en cuanto el campo tiene foco o texto. */
@@ -302,7 +302,7 @@ button { font: inherit; color: inherit; background: none; border: none; }
   left: 0;
   width: 2px;
   height: 30px;
-  background: var(--amber);
+  background: var(--accent);
   border-radius: 0 var(--r) var(--r) 0;
   opacity: 0;
   transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s;
@@ -340,7 +340,7 @@ button { font: inherit; color: inherit; background: none; border: none; }
 
 .navitem:hover { color: var(--ink); background: var(--surface); }
 .navitem.is-active { color: var(--ink); background: var(--surface-2); }
-.navitem.is-active .navitem__text { color: var(--amber); }
+.navitem.is-active .navitem__text { color: var(--accent); }
 
 .navitem__glyph {
   flex: none;
@@ -371,7 +371,7 @@ button { font: inherit; color: inherit; background: none; border: none; }
 }
 
 .navitem__count.is-zero { color: var(--mark); }
-.navitem__count.is-hit { color: var(--amber); }
+.navitem__count.is-hit { color: var(--accent); }
 
 /* Punto de estado: sube el pulso solo si el objetivo se ha leido en 48h. */
 .dot {
@@ -500,22 +500,22 @@ button { font: inherit; color: inherit; background: none; border: none; }
   gap: 8px;
   height: 30px;
   padding: 0 14px;
-  border: 1px solid var(--amber-line);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r);
-  background: var(--amber-wash);
+  background: var(--accent-wash);
   font-family: var(--mono);
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--accent);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
-.sync:hover { background: var(--amber); color: var(--amber-ink); }
+.sync:hover { background: var(--accent); color: var(--accent-ink); }
 .sync:disabled { opacity: 0.55; cursor: wait; }
-.sync:disabled:hover { background: var(--amber-wash); color: var(--amber); }
+.sync:disabled:hover { background: var(--accent-wash); color: var(--accent); }
 .sync svg { flex: none; }
 .sync:disabled svg { animation: spin 1.1s linear infinite; }
 
@@ -565,8 +565,8 @@ button { font: inherit; color: inherit; background: none; border: none; }
   position: absolute;
   left: 0; right: 0; top: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--amber), transparent);
-  box-shadow: 0 0 14px rgba(240, 165, 0, 0.45);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 14px rgba(0, 167, 175, 0.5);
   opacity: 0;
   pointer-events: none;
   z-index: 4;
@@ -745,12 +745,12 @@ button { font: inherit; color: inherit; background: none; border: none; }
   height: 100%;
   width: 0;
   border-radius: 2px;
-  background: var(--amber);
+  background: var(--accent);
   transition: width 0.7s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .meter--good .meter__fill { background: var(--good); }
-.meter--good { background: rgba(63, 185, 139, 0.2); }
+.meter--good { background: rgba(63, 190, 114, 0.22); }
 
 /* ---------- 08  Mapa de calor ------------------------------------------- */
 
@@ -802,7 +802,7 @@ button { font: inherit; color: inherit; background: none; border: none; }
 }
 
 .heat__foot-label { justify-content: flex-end; padding-right: 2px; }
-.heat__col.is-lit { color: var(--amber); }
+.heat__col.is-lit { color: var(--accent); }
 
 .heat__row {
   display: flex;
@@ -865,9 +865,9 @@ button { font: inherit; color: inherit; background: none; border: none; }
 .heat__cell[data-level="1"] { background: var(--heat-1); color: var(--ink); }
 .heat__cell[data-level="2"] { background: var(--heat-2); color: var(--ink); }
 .heat__cell[data-level="3"] { background: var(--heat-3); color: var(--ink); }
-.heat__cell[data-level="4"] { background: var(--heat-4); color: var(--amber-ink); }
-.heat__cell[data-level="5"] { background: var(--heat-5); color: var(--amber-ink); }
-.heat__cell[data-level="6"] { background: var(--heat-6); color: var(--amber-ink); }
+.heat__cell[data-level="4"] { background: var(--heat-4); color: var(--accent-ink); }
+.heat__cell[data-level="5"] { background: var(--heat-5); color: var(--accent-ink); }
+.heat__cell[data-level="6"] { background: var(--heat-6); color: var(--accent-ink); }
 
 .heat__cell:hover,
 .heat__cell:focus-visible { filter: brightness(1.35); transform: scale(1.06); z-index: 2; }
@@ -941,10 +941,10 @@ button { font: inherit; color: inherit; background: none; border: none; }
   transition: border-color 0.15s;
 }
 
-.heat__readout.is-lit { border-left-color: var(--amber); color: var(--ink); }
+.heat__readout.is-lit { border-left-color: var(--accent); color: var(--ink); }
 .heat__readout.is-lit.is-rival { border-left-color: var(--signal); }
 .heat__readout b { font-weight: 500; color: var(--ink); }
-.heat__readout em { font-style: normal; color: var(--amber); }
+.heat__readout em { font-style: normal; color: var(--accent); }
 .heat__readout.is-rival em { color: var(--signal); }
 
 /* ---------- 09  Barras de un solo objetivo ------------------------------ */
@@ -984,7 +984,7 @@ button { font: inherit; color: inherit; background: none; border: none; }
   height: var(--h, 0%);
   min-height: 2px;
   border-radius: 3px 3px 0 0;
-  background: var(--amber);
+  background: var(--accent);
   transition: height 0.7s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -1104,12 +1104,12 @@ button { font: inherit; color: inherit; background: none; border: none; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--amber);
+  color: var(--accent);
   border-bottom: 1px solid transparent;
   transition: border-color 0.15s;
 }
 
-.link:hover { border-bottom-color: var(--amber-line); }
+.link:hover { border-bottom-color: var(--accent-line); }
 
 .target__stat { min-width: 0; }
 .target__stat .label { display: block; font-size: 0.5625rem; letter-spacing: 0.16em; color: var(--mark); }
@@ -1144,8 +1144,8 @@ button { font: inherit; color: inherit; background: none; border: none; }
 }
 
 .chip::before { content: ""; width: 5px; height: 5px; border-radius: 1px; background: currentColor; }
-.chip--new { color: var(--good); border-color: rgba(63, 185, 139, 0.3); }
-.chip--price { color: var(--amber); border-color: var(--amber-line); }
+.chip--new { color: var(--good); border-color: rgba(63, 190, 114, 0.32); }
+.chip--price { color: var(--accent); border-color: var(--accent-line); }
 .chip--stock { color: var(--info); border-color: rgba(77, 163, 255, 0.3); }
 .chip--gone { color: var(--signal); border-color: var(--signal-line); }
 .chip--quiet { color: var(--mark); }
@@ -1192,17 +1192,17 @@ button { font: inherit; color: inherit; background: none; border: none; }
   position: absolute;
   left: 13px; right: 13px; bottom: -1px;
   height: 1px;
-  background: var(--amber);
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .tab:hover { color: var(--ink-2); }
-.tab.is-active { color: var(--amber); }
+.tab.is-active { color: var(--accent); }
 .tab.is-active::after { transform: scaleX(1); }
 .tab small { font-variant-numeric: tabular-nums; color: var(--mark); letter-spacing: 0; }
-.tab.is-active small { color: var(--amber); }
+.tab.is-active small { color: var(--accent); }
 
 .panel { display: none; }
 .panel.is-active { display: block; }
@@ -1254,7 +1254,7 @@ tbody td:first-child::before {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 2px;
-  background: var(--amber);
+  background: var(--accent);
   transform: scaleY(0);
   transition: transform 0.14s;
 }
@@ -1271,7 +1271,7 @@ td.t-name {
 }
 
 td.t-name a { border-bottom: 1px solid transparent; transition: border-color 0.15s, color 0.15s; }
-td.t-name a:hover { color: var(--amber); border-bottom-color: var(--amber-line); }
+td.t-name a:hover { color: var(--accent); border-bottom-color: var(--accent-line); }
 
 td.t-sku { color: var(--mark); font-size: 0.6875rem; }
 td.t-target { font-size: 0.6875rem; letter-spacing: 0.06em; color: var(--ink-3); }
