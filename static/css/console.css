@@ -1204,6 +1204,45 @@ button { font: inherit; color: inherit; background: none; border: none; }
 .tab small { font-variant-numeric: tabular-nums; color: var(--mark); letter-spacing: 0; }
 .tab.is-active small { color: var(--accent); }
 
+/* Filtro por objetivo de las vistas de registro, que cruzan las 4 tiendas.
+   Se combina con el buscador: una fila se ve si pasa los dos. */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.filtro:hover { color: var(--ink); border-color: var(--rule-2); background: var(--surface-2); }
+.filtro small { font-variant-numeric: tabular-nums; color: var(--mark); }
+
+.filtro.is-active {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+
+.filtro.is-active small { color: var(--accent); }
+.filtro--rival.is-active { color: var(--signal); border-color: var(--signal-line); background: var(--signal-wash); }
+.filtro--rival.is-active small { color: var(--signal); }
+
 .panel { display: none; }
 .panel.is-active { display: block; }
 

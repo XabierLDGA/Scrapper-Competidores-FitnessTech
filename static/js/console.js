@@ -212,6 +212,16 @@
       return;
     }
 
+    var chip = e.target.closest(".filtro");
+    if (chip) {
+      filtroTienda = chip.dataset.filtro;
+      document.querySelectorAll(".filtro").forEach(function (c) {
+        c.classList.toggle("is-active", c.dataset.filtro === filtroTienda);
+      });
+      filtrar();
+      return;
+    }
+
     var plegar = e.target.closest('[data-action="fold"]');
     if (plegar) {
       var plegado = consola.classList.toggle("is-collapsed");
@@ -243,10 +253,22 @@
     var objetivo = clave.indexOf("objetivo/") === 0
       ? (itemDe(clave) ? itemDe(clave).dataset.target : null)
       : null;
+    var esRegistro = clave.indexOf("registro/") === 0;
     seccion.querySelectorAll("tr[data-search]").forEach(function (tr) {
-      filas.push({ el: tr, texto: tr.dataset.search, vista: clave, objetivo: objetivo, oculta: false });
+      filas.push({
+        el: tr, texto: tr.dataset.search, vista: clave, objetivo: objetivo,
+        // Solo las vistas de registro se filtran por tienda: las de objetivo
+        // ya son de una sola.
+        tienda: esRegistro ? tr.dataset.target : null,
+        oculta: false,
+      });
     });
   });
+
+  // Tienda elegida en las vistas de registro ("" = todas). Es una sola para
+  // los cuatro registros: si filtras por Titanium en Precios y saltas a
+  // Altas, sigues viendo Titanium.
+  var filtroTienda = "";
 
   var contadores = {};
   document.querySelectorAll("[data-count-for]").forEach(function (el) {
@@ -262,12 +284,17 @@
 
     for (var i = 0; i < filas.length; i++) {
       var fila = filas[i];
-      var visible = !q || fila.texto.indexOf(q) !== -1;
+      var coincide = !q || fila.texto.indexOf(q) !== -1;
+      var pasaFiltro = !filtroTienda || !fila.tienda || fila.tienda === filtroTienda;
+      var visible = coincide && pasaFiltro;
       if (fila.oculta !== !visible) {
         fila.el.classList.toggle("u-hide", !visible);
         fila.oculta = !visible;
       }
-      if (visible) {
+      // Los contadores del lateral cuentan coincidencias de busqueda, sin
+      // mirar el filtro por tienda: si no, filtrar en un registro vaciaria
+      // los numeros de las demas tiendas del menu.
+      if (coincide) {
         porVista[fila.vista] = (porVista[fila.vista] || 0) + 1;
         if (fila.objetivo) porObjetivo[fila.objetivo] = (porObjetivo[fila.objetivo] || 0) + 1;
       }
@@ -290,7 +317,8 @@
       var contenedor = aviso.parentElement;
       var total = contenedor.querySelectorAll("tr[data-search]").length;
       var ocultas = contenedor.querySelectorAll("tr[data-search].u-hide").length;
-      aviso.classList.toggle("u-hide", !(q && total > 0 && ocultas === total));
+      var acotado = q || filtroTienda;
+      aviso.classList.toggle("u-hide", !(acotado && total > 0 && ocultas === total));
 
       var bloque = contenedor.closest(".block");
       var etiqueta = bloque && bloque.querySelector('.tab[data-tab="' + contenedor.dataset.panel + '"] small');
