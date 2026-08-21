@@ -300,12 +300,12 @@ class Database:
             cursor = conn.cursor(dictionary=True)
             try:
                 cursor.execute("""
-                    SELECT c.id, c.name, c.website_url, c.country,
+                    SELECT c.id, c.name, c.website_url, c.country, c.platform,
                            COUNT(DISTINCT p.id) AS total_products,
                            MAX(p.last_seen) AS last_crawled
                     FROM competitors c
                     LEFT JOIN products p ON p.competitor_id = c.id
-                    GROUP BY c.id, c.name, c.website_url, c.country
+                    GROUP BY c.id, c.name, c.website_url, c.country, c.platform
                     ORDER BY c.name
                 """)
                 return cursor.fetchall()

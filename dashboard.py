@@ -1,12 +1,15 @@
 import asyncio
 import logging
 import os
+from datetime import date, datetime
+from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, url_for
 
 import main as crawl_main
 from src.db import Database
+from src.metrics import PRICE_BANDS, build_targets, global_metrics
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -35,46 +38,59 @@ class PrefixMiddleware:
 
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=os.getenv("SCRIPT_NAME", ""))
 
-OWN_STORES = {"Fitness Tech", "Fitness Tech FR", "Fitness Tech PT"}
-COMPETITOR_LOGOS = {
-    "Fitness Tech": "fitnesstech-es.png",
-    "Fitness Tech FR": "fitnesstech-fr.png",
-    "Fitness Tech PT": "fitnesstech-pt.png",
-    "Titanium Strength": "titanium-strength.png",
-}
+STATIC_DIR = Path(app.static_folder)
 
 
-def _build_competitor_groups(competitors, new_products, price_events,
-                              availability_events, removed_products, catalog):
-    """Agrupa las listas planas de la BD (una fila por producto/evento, sin
-    distinguir competidor) en una lista por competidor, para las tarjetas
-    de la landing del dashboard."""
-    groups = {}
-    for c in competitors:
-        groups[c["name"]] = {
-            **c,
-            "is_own_store": c["name"] in OWN_STORES,
-            "logo": COMPETITOR_LOGOS.get(c["name"]),
-            "new_products": [],
-            "price_events": [],
-            "availability_events": [],
-            "removed_products": [],
-            "catalog": [],
-        }
+def asset(filename: str) -> str:
+    """URL de un estatico con la fecha del fichero pegada, para que al
+    desplegar una version nueva del CSS/JS el navegador no sirva la vieja
+    de cache. Flask ya manda ETag, pero el proxy y los navegadores del
+    equipo no siempre revalidan."""
+    path = STATIC_DIR / filename
+    stamp = int(path.stat().st_mtime) if path.exists() else 0
+    return url_for("static", filename=filename, v=stamp)
 
-    for key, rows in (
-        ("new_products", new_products),
-        ("price_events", price_events),
-        ("availability_events", availability_events),
-        ("removed_products", removed_products),
-        ("catalog", catalog),
-    ):
-        for row in rows:
-            group = groups.get(row["competitor"])
-            if group is not None:
-                group[key].append(row)
 
-    return sorted(groups.values(), key=lambda g: g["name"])
+app.jinja_env.globals["asset"] = asset
+
+
+def _es_number(value: float, decimals: int) -> str:
+    """Formato espanol: punto para los miles, coma para los decimales.
+    Python solo sabe hacerlo al reves, asi que se intercambian al final."""
+    formatted = f"{value:,.{decimals}f}"
+    return formatted.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
+
+@app.template_filter("miles")
+def fmt_miles(value) -> str:
+    return "—" if value is None else _es_number(value, 0)
+
+
+@app.template_filter("pct")
+def fmt_pct(value) -> str:
+    return "—" if value is None else _es_number(value, 1)
+
+
+@app.template_filter("eur")
+def fmt_eur(value) -> str:
+    return "—" if value is None else _es_number(value, 2) + " €"
+
+
+@app.template_filter("fecha")
+def fmt_fecha(value, with_time: bool = False) -> str:
+    """Fecha en el formato corto que usa la consola (21.08.2026)."""
+    if value is None:
+        return "sin datos"
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+    if isinstance(value, datetime):
+        return value.strftime("%d.%m.%Y · %H:%M" if with_time else "%d.%m.%Y")
+    if isinstance(value, date):
+        return value.strftime("%d.%m.%Y")
+    return str(value)
 
 
 def get_db() -> Database:
@@ -90,15 +106,20 @@ def get_db() -> Database:
 @app.route("/")
 def index():
     db = get_db()
-    competitor_groups = _build_competitor_groups(
-        db.get_competitor_stats(),
-        db.get_recently_added_products(hours=24),
-        db.get_recent_price_events(hours=24),
-        db.get_recent_availability_events(hours=24),
-        db.get_recently_removed_products(hours=24),
-        db.get_latest_snapshots(),
+    targets = build_targets(
+        competitors=db.get_competitor_stats(),
+        new_products=db.get_recently_added_products(hours=24),
+        price_events=db.get_recent_price_events(hours=24),
+        availability_events=db.get_recent_availability_events(hours=24),
+        removed_products=db.get_recently_removed_products(hours=24),
+        catalog=db.get_latest_snapshots(),
     )
-    return render_template("dashboard.html", competitor_groups=competitor_groups)
+    return render_template(
+        "dashboard.html",
+        targets=targets,
+        totals=global_metrics(targets),
+        price_bands=PRICE_BANDS,
+    )
 
 
 @app.route("/crawl", methods=["POST"])
@@ -107,15 +128,15 @@ def trigger_crawl():
         summary = asyncio.run(crawl_main.main())
     except Exception:
         logger.exception("Error ejecutando el crawl")
-        flash("Error al ejecutar el crawl. Revisa los logs de la consola.", "error")
+        flash("La sincronizacion ha fallado. Revisa los logs del contenedor.", "error")
         return redirect(url_for("index"))
 
     message = (
-        f"Crawl completado: {summary['new_products']} productos nuevos, "
-        f"{summary['pending_events']} eventos pendientes."
+        f"Sincronizacion completada: {summary['new_products']} productos nuevos, "
+        f"{summary['pending_events']} cambios detectados."
     )
     if summary["errors"]:
-        message += f" Fallo al crawlear: {', '.join(summary['errors'])}."
+        message += f" No se pudo leer: {', '.join(summary['errors'])}."
         flash(message, "error")
     else:
         flash(message, "success")

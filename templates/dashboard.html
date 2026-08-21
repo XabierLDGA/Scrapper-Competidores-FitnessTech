@@ -3,719 +3,611 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vigilancia de competencia — FitnessTech</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%88</text></svg>">
+<meta name="color-scheme" content="dark">
+<title>Vigilancia de mercado — FitnessTech</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 fill=%22%230e1215%22/><path d=%22M6 6h5v3H9v14h2v3H6zM26 6h-5v3h2v14h-2v3h5z%22 fill=%22%23f0a500%22/><rect x=%2214%22 y=%2211%22 width=%224%22 height=%2210%22 fill=%22%23f0a500%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #121316;
-    --panel: #1a1c20;
-    --panel-soft: #24262b;
-    --border: #34363c;
-    --edge-hi: #3d4046;
-    --text: #eef0f2;
-    --muted: #888d95;
-
-    --brand: #00a7b0;
-    --brand-dark: #027d84;
-    --brand-soft: rgba(0, 167, 176, 0.16);
-    --rival: #e5484d;
-    --rival-soft: rgba(229, 72, 77, 0.14);
-    --hazard: #d9a334;
-    --green: #34d399;
-    --green-soft: rgba(52, 211, 153, 0.14);
-    --price-up: #f87171;
-    --price-up-soft: rgba(248, 113, 113, 0.14);
-
-    --font-display: 'IBM Plex Sans Condensed', -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-body: 'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
-
-    --radius-lg: 10px;
-    --radius-md: 6px;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
-    --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.04), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: var(--font-body);
-    background: var(--bg);
-    color: var(--text);
-  }
-  a { color: var(--brand); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  a:focus-visible, button:focus-visible, input:focus-visible {
-    outline: 2px solid var(--brand);
-    outline-offset: 2px;
-  }
-
-  /* ---------- Cabecera ---------- */
-  header {
-    padding: 18px 32px;
-    background: var(--panel);
-    color: var(--text);
-    border-bottom: 3px solid var(--brand);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
-  .brand-mark {
-    flex: none;
-    height: 26px;
-    width: auto;
-    display: block;
-    padding-right: 20px;
-    border-right: 1px solid var(--border);
-  }
-  header h1 {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 1.4rem;
-    font-weight: 700;
-    font-style: italic;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-  header p {
-    margin: 2px 0 0;
-    font-family: var(--font-mono);
-    color: var(--muted);
-    font-size: 0.76rem;
-    letter-spacing: 0.02em;
-  }
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .product-search {
-    background: var(--panel-soft);
-    color: var(--text);
-    font-family: var(--font-body);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 10px 14px;
-    font-size: 0.88rem;
-    width: 240px;
-  }
-  .product-search::placeholder { color: var(--muted); }
-  .product-search:focus {
-    outline: none;
-    border-color: var(--brand);
-    background: var(--panel);
-  }
-  .crawl-btn {
-    background: var(--brand);
-    color: #06181a;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 11px 18px;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    box-shadow: var(--bevel);
-    transition: background 0.15s ease, transform 0.1s ease;
-  }
-  .crawl-btn:hover { background: #17c2cc; }
-  .crawl-btn:active { transform: scale(0.97); }
-  .crawl-btn:disabled { opacity: 0.6; cursor: wait; }
-
-  @keyframes flash-in {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .flash {
-    margin: 20px 32px 0;
-    padding: 12px 18px;
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-    font-size: 0.9rem;
-    font-weight: 600;
-    animation: flash-in 0.25s ease;
-  }
-  .flash.success { background: var(--green-soft); color: var(--green); border-color: rgba(52, 211, 153, 0.3); }
-  .flash.error { background: var(--price-up-soft); color: var(--price-up); border-color: rgba(248, 113, 113, 0.3); }
-
-  /* ---------- Contenido ---------- */
-  main {
-    padding: 8px 32px 64px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .group-heading {
-    margin: 40px 0 16px;
-  }
-  .group-heading h2 {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-weight: 700;
-    font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--text);
-  }
-
-  /* Franja de separacion entre secciones, en el lenguaje de las cintas de
-     aviso de las jaulas y racks que vende la propia tienda. */
-  .section-divider {
-    height: 5px;
-    margin: 44px 0 0;
-    border-radius: 3px;
-    background: repeating-linear-gradient(
-      -45deg,
-      var(--hazard) 0 10px,
-      #1a1a1a 10px 20px
-    );
-    opacity: 0.55;
-  }
-
-  .card-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .empty-note {
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    padding: 16px 4px;
-  }
-
-  /* ---------- Tarjeta de competidor ---------- */
-  .card {
-    position: relative;
-    grid-column: span 1;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-top: 3px solid var(--brand);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-  }
-  .card.card--rival { border-top-color: var(--rival); }
-  .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 20px 36px -16px rgba(0, 0, 0, 0.65);
-  }
-  .card.no-match { display: none; }
-
-  .card-head {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 18px 24px;
-    cursor: pointer;
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
-    font: inherit;
-    color: inherit;
-  }
-  .card-logo {
-    flex: none;
-    width: 108px;
-    height: 108px;
-    border-radius: var(--radius-md);
-    background: #eef0f0;
-    box-shadow: var(--bevel), 0 0 0 1px #a8adb3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-  }
-  .card-logo img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    border-radius: 4px;
-  }
-  .card-logo.placeholder {
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--brand-dark);
-  }
-
-  .card-title { flex: 1; min-width: 0; }
-  .card-title .name {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-style: italic;
-    font-size: 1.3rem;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  /* Insignia de pais: sustituye a la bandera emoji (Windows la renderiza
-     como texto suelto, no como bandera) por un disco troquelado, en el
-     mismo lenguaje visual que un disco de peso de la sala de musculacion. */
-  .plate-badge {
-    flex: none;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #3a3d43, #1b1c1f 70%);
-    box-shadow: 0 0 0 1px var(--edge-hi), inset 0 1px 1px rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-  }
-  .card-title .meta {
-    margin-top: 5px;
-    font-family: var(--font-mono);
-    color: var(--muted);
-    font-size: 0.78rem;
-    letter-spacing: 0.01em;
-  }
-
-  .card-chevron {
-    flex: none;
-    color: var(--muted);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    font-size: 1.6rem;
-    line-height: 1;
-  }
-  .card.expanded .card-chevron { transform: rotate(180deg); color: var(--brand); }
-
-  .card-stats {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .chip {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    padding: 5px 10px;
-    border-radius: 4px;
-    border-left: 3px solid var(--border);
-    background: var(--panel-soft);
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  .chip--new { border-left-color: var(--green); color: var(--green); }
-  .chip--price { border-left-color: var(--hazard); color: var(--hazard); }
-  .chip--availability { border-left-color: #4da3ff; color: #4da3ff; }
-
-  .card-detail {
-    display: none;
-    border-top: 1px solid var(--border);
-    background: var(--panel-soft);
-  }
-  .card.expanded .card-detail { display: block; }
-
-  .tabs {
-    display: flex;
-    gap: 2px;
-    padding: 14px 24px 0;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--border);
-  }
-  .tab-btn {
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    font-family: var(--font-mono);
-    font-size: 0.76rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--muted);
-    padding: 8px 12px 10px;
-    cursor: pointer;
-    transition: color 0.15s ease, border-color 0.15s ease;
-  }
-  .tab-btn:hover { color: var(--text); }
-  .tab-btn.active { color: var(--brand); border-color: var(--brand); }
-
-  @keyframes tab-fade-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .tab-panel { display: none; padding: 16px 24px 22px; }
-  .tab-panel.active { display: block; animation: tab-fade-in 0.2s ease; }
-
-  .table-wrap {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    overflow-x: auto;
-  }
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th, td { padding: 10px 14px; text-align: left; white-space: nowrap; }
-  th {
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-weight: 600;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
-  tbody tr:hover { background: rgba(0, 167, 176, 0.08); }
-  td.title, td.url { white-space: normal; max-width: 380px; font-weight: 500; }
-  td:not(.title) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-  .table-empty { color: var(--muted); font-family: var(--font-mono); padding: 18px 14px; font-size: 0.82rem; }
-
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    border: 1px solid transparent;
-  }
-  .badge.available { background: var(--green-soft); color: var(--green); border-color: rgba(52, 211, 153, 0.3); }
-  .badge.unavailable { background: var(--price-up-soft); color: var(--price-up); border-color: rgba(248, 113, 113, 0.3); }
-  .change { font-weight: 700; }
-  .change.increase { color: var(--price-up); }
-  .change.decrease { color: var(--green); }
-  .change.increase::before { content: "▲ "; }
-  .change.decrease::before { content: "▼ "; }
-
-  /* ---------- Responsive ---------- */
-  @media (max-width: 640px) {
-    header, .flash, main { padding-left: 18px; padding-right: 18px; }
-    .card-head { padding: 16px; gap: 14px; }
-    .card-logo { width: 72px; height: 72px; }
-    .card-title .name { font-size: 1.05rem; }
-    .card-stats { display: none; }
-    .product-search { width: 100%; }
-    .header-controls { width: 100%; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.001ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.001ms !important;
-    }
-  }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ asset('css/console.css') }}">
 </head>
 <body>
-<header>
-  <div class="brand">
-    <img class="brand-mark" src="{{ url_for('static', filename='logos/fitnesstech-brand.png') }}" alt="FitnessTech">
-    <div>
-      <h1>Vigilancia de competencia</h1>
-      <p>MySQL local &middot; sin tiempo real &middot; se actualiza al recargar</p>
+
+{#  ------------------------------------------------------------------
+    Iconos. Trazo de 1,5px para que pesen lo mismo que los filetes de la
+    interfaz y no compitan con el texto.
+    ------------------------------------------------------------------ #}
+{% macro icon(name, size=14) %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" fill="none"
+     stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+     stroke-linejoin="round" aria-hidden="true">
+  {%- if name == 'grid' -%}
+    <rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/>
+    <rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/>
+  {%- elif name == 'search' -%}
+    <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/>
+  {%- elif name == 'fold' -%}
+    <path d="M10 3 5 8l5 5"/>
+  {%- elif name == 'menu' -%}
+    <path d="M2 4h12M2 8h12M2 12h12"/>
+  {%- elif name == 'sync' -%}
+    <path d="M14 8a6 6 0 1 1-1.8-4.3"/><path d="M14 2v4h-4"/>
+  {%- elif name == 'plus' -%}
+    <path d="M8 3v10M3 8h10"/>
+  {%- elif name == 'tag' -%}
+    <path d="M2 6.5V2h4.5L14 9.5 9.5 14z"/><circle cx="4.8" cy="4.8" r="0.9" fill="currentColor" stroke="none"/>
+  {%- elif name == 'box' -%}
+    <path d="M8 1.8 14 5v6l-6 3.2L2 11V5z"/><path d="M2 5l6 3.2L14 5"/><path d="M8 8.2V14.2"/>
+  {%- elif name == 'minus' -%}
+    <path d="M3 8h10"/>
+  {%- elif name == 'link' -%}
+    <path d="M6.5 9.5a2.5 2.5 0 0 0 3.6 0l2.4-2.4a2.5 2.5 0 0 0-3.6-3.6l-.6.6"/>
+    <path d="M9.5 6.5a2.5 2.5 0 0 0-3.6 0L3.5 8.9a2.5 2.5 0 0 0 3.6 3.6l.6-.6"/>
+  {%- endif -%}
+</svg>
+{% endmacro %}
+
+{#  ------------------------------------------------------------------
+    Tablas. Las mismas columnas de siempre; `objetivo` anade la columna de
+    tienda para las vistas de registro, que cruzan los cuatro objetivos.
+    ------------------------------------------------------------------ #}
+
+{% macro fila_id(p) -%}
+data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}"
+{%- endmacro %}
+
+{% macro th_objetivo(objetivo) %}{% if objetivo %}<th>Objetivo</th>{% endif %}{% endmacro %}
+{% macro td_objetivo(p, objetivo) %}{% if objetivo %}<td class="t-target">{{ p.competitor }}</td>{% endif %}{% endmacro %}
+
+{% macro tabla_catalogo(rows) %}
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>SKU</th><th>Producto</th><th class="t-num">Precio</th><th>Estado</th><th>Última lectura</th></tr></thead>
+    <tbody>
+      {% for p in rows %}
+      <tr {{ fila_id(p) }}>
+        <td class="t-sku">{{ p.sku or "—" }}</td>
+        <td class="t-name"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+        <td class="t-num">{{ p.price | eur }}</td>
+        <td>{% if p.available %}<span class="badge is-yes">Disponible</span>{% else %}<span class="badge is-no">Agotado</span>{% endif %}</td>
+        <td class="t-when">{{ p.captured_at | fecha }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro tabla_nuevos(rows, objetivo=false) %}
+<div class="tablewrap">
+  <table>
+    <thead><tr>{{ th_objetivo(objetivo) }}<th>SKU</th><th>Producto</th><th class="t-num">Precio</th><th>Estado</th><th>Detectado</th></tr></thead>
+    <tbody>
+      {% for p in rows %}
+      <tr {{ fila_id(p) }}>
+        {{ td_objetivo(p, objetivo) }}
+        <td class="t-sku">{{ p.sku or "—" }}</td>
+        <td class="t-name"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
+        <td class="t-num">{{ p.price | eur }}</td>
+        <td>{% if p.available %}<span class="badge is-yes">Disponible</span>{% else %}<span class="badge is-no">Agotado</span>{% endif %}</td>
+        <td class="t-when">{{ p.first_seen | fecha(true) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro tabla_precio(rows, objetivo=false) %}
+<div class="tablewrap">
+  <table>
+    <thead><tr>{{ th_objetivo(objetivo) }}<th>SKU</th><th>Producto</th><th class="t-num">Antes</th><th class="t-num">Ahora</th><th class="t-num">Variación</th><th>Detectado</th></tr></thead>
+    <tbody>
+      {% for e in rows %}
+      <tr {{ fila_id(e) }}>
+        {{ td_objetivo(e, objetivo) }}
+        <td class="t-sku">{{ e.sku or "—" }}</td>
+        <td class="t-name">{{ e.title }}</td>
+        <td class="t-num">{{ e.old_price | eur }}</td>
+        <td class="t-num">{{ e.new_price | eur }}</td>
+        <td class="t-num delta {{ e.event_type }}">
+          <span class="arrow" aria-hidden="true">{{ "▲" if e.event_type == "increase" else "▼" }}</span>{{ "%+.1f"|format(e.percent_change) | replace(".", ",") }}%
+        </td>
+        <td class="t-when">{{ e.detected_at | fecha(true) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro tabla_stock(rows, objetivo=false) %}
+<div class="tablewrap">
+  <table>
+    <thead><tr>{{ th_objetivo(objetivo) }}<th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr></thead>
+    <tbody>
+      {% for a in rows %}
+      <tr {{ fila_id(a) }}>
+        {{ td_objetivo(a, objetivo) }}
+        <td class="t-sku">{{ a.sku or "—" }}</td>
+        <td class="t-name"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
+        <td>{% if a.was_available %}<span class="badge is-yes">Disponible</span>{% else %}<span class="badge is-no">Agotado</span>{% endif %}</td>
+        <td>{% if a.now_available %}<span class="badge is-yes">Disponible</span>{% else %}<span class="badge is-no">Agotado</span>{% endif %}</td>
+        <td class="t-when">{{ a.detected_at | fecha(true) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro tabla_bajas(rows, objetivo=false) %}
+<div class="tablewrap">
+  <table>
+    <thead><tr>{{ th_objetivo(objetivo) }}<th>SKU</th><th>Producto</th><th>Visto por última vez</th><th>Retirado</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr {{ fila_id(r) }}>
+        {{ td_objetivo(r, objetivo) }}
+        <td class="t-sku">{{ r.sku or "—" }}</td>
+        <td class="t-name"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
+        <td class="t-when">{{ r.last_seen | fecha }}</td>
+        <td class="t-when">{{ r.removed_at | fecha(true) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro sin_datos(titulo, pista) %}
+<p class="empty"><b>{{ titulo }}</b>{{ pista }}</p>
+{% endmacro %}
+
+{% macro tabla(clave, rows, objetivo=false) %}
+  {%- if clave == 'catalog' -%}{{ tabla_catalogo(rows) }}
+  {%- elif clave == 'new_products' -%}{{ tabla_nuevos(rows, objetivo) }}
+  {%- elif clave == 'price_events' -%}{{ tabla_precio(rows, objetivo) }}
+  {%- elif clave == 'availability_events' -%}{{ tabla_stock(rows, objetivo) }}
+  {%- elif clave == 'removed_products' -%}{{ tabla_bajas(rows, objetivo) }}
+  {%- endif -%}
+{% endmacro %}
+
+{% macro placa(t) %}
+<span class="plate{{ ' plate--empty' if not t.logo }}">
+  {% if t.logo %}<img src="{{ asset('logos/' ~ t.logo) }}" alt="">{% else %}{{ t.code[:2] }}{% endif %}
+</span>
+{% endmacro %}
+
+{#  ------------------------------------------------------------------ #}
+
+{% set registros = [
+  ('new_products',        'Altas',          'Altas de catálogo',        'plus',  'Productos que no estaban en la lectura anterior.'),
+  ('price_events',        'Precios',        'Cambios de precio',        'tag',   'Subidas y bajadas por encima del umbral de detección.'),
+  ('availability_events', 'Disponibilidad', 'Cambios de disponibilidad','box',   'Productos que han entrado o salido de stock.'),
+  ('removed_products',    'Bajas',          'Bajas de catálogo',        'minus', 'Productos que han desaparecido del catálogo.'),
+] %}
+
+{% set pestanas = [
+  ('catalog',             'Catálogo'),
+  ('new_products',        'Altas'),
+  ('price_events',        'Precios'),
+  ('availability_events', 'Disponibilidad'),
+  ('removed_products',    'Bajas'),
+] %}
+
+{% set rivales = targets | rejectattr('is_own_store') | list %}
+{% set propias = targets | selectattr('is_own_store') | list %}
+
+<div class="console" id="console">
+<div class="scrim" data-action="close-rail" aria-hidden="true"></div>
+
+{# ============================ BARRA LATERAL ============================ #}
+<aside class="rail">
+  <div class="rail__brand">
+    <span class="rail__mark" aria-hidden="true">FT</span>
+    <span class="rail__name">
+      <b>VIGILANCIA</b>
+      <span>Mercado · FitnessTech</span>
+    </span>
+    <button type="button" class="rail__fold" data-action="fold"
+            aria-label="Plegar el menú" title="Plegar el menú">{{ icon('fold', 13) }}</button>
+  </div>
+
+  <div class="rail__search" id="search-shell">
+    {{ icon('search', 13) }}
+    <input type="search" id="search" class="search" autocomplete="off" spellcheck="false"
+           placeholder="Buscar producto o SKU" aria-label="Buscar producto o SKU">
+    <span class="search-key" aria-hidden="true">/</span>
+  </div>
+
+  <nav class="rail__nav" aria-label="Secciones">
+    <span class="rail__caret" id="caret" aria-hidden="true"></span>
+
+    <p class="rail__section">Panel</p>
+    <a class="navitem" href="#panel" data-view="panel">
+      <span class="navitem__glyph">{{ icon('grid', 13) }}</span>
+      <span class="navitem__text">Vista general</span>
+    </a>
+
+    <p class="rail__section">Objetivos</p>
+    {% for t in targets %}
+    <a class="navitem{{ ' navitem--rival' if not t.is_own_store }}"
+       href="#objetivo/{{ t.slug }}" data-view="objetivo/{{ t.slug }}" data-target="{{ t.name }}">
+      <span class="navitem__glyph"><span class="dot{{ ' is-live' if t.is_live }}"
+            title="{{ 'Leído en las últimas 48 h' if t.is_live else 'Sin lectura reciente' }}"></span></span>
+      <span class="navitem__text">{{ t.name }}</span>
+      <span class="navitem__count{{ ' is-zero' if not t.event_count }}"
+            data-count-for="{{ t.name }}">{{ t.metrics.total | miles }}</span>
+    </a>
+    {% endfor %}
+
+    <p class="rail__section">Registros</p>
+    {% for clave, corto, largo, ico, pista in registros %}
+    {% set n = targets | map(attribute=clave) | map('length') | sum %}
+    <a class="navitem" href="#registro/{{ clave }}" data-view="registro/{{ clave }}">
+      <span class="navitem__glyph">{{ icon(ico, 13) }}</span>
+      <span class="navitem__text">{{ corto }}</span>
+      <span class="navitem__count{{ ' is-zero' if not n }}">{{ n }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  <div class="rail__status">
+    <dl>
+      <div><dt>Última lectura</dt><dd>{{ totals.last_crawled | fecha }}</dd></div>
+      <div><dt>En línea</dt><dd>{{ totals.live_targets }} / {{ totals.targets }}</dd></div>
+      <div><dt>Origen</dt><dd>MySQL</dd></div>
+    </dl>
+  </div>
+</aside>
+
+{# ============================ ESCENARIO ============================== #}
+<div class="stage">
+  <header class="topbar">
+    <button type="button" class="topbar__menu" data-action="open-rail" aria-label="Abrir el menú">{{ icon('menu') }}</button>
+    <nav class="crumbs" aria-label="Ubicación">
+      <span class="crumbs__root">Vigilancia</span>
+      <span class="crumbs__sep" aria-hidden="true">/</span>
+      <span class="crumbs__here" id="crumb">Vista general</span>
+    </nav>
+    <div class="telemetry">
+      <span class="telemetry__count"><b>{{ totals.products | miles }}</b> productos</span>
+      <span class="telemetry__clock"><i>Madrid</i> <b id="clock">--:--:--</b></span>
     </div>
-  </div>
-  <div class="header-controls">
-    <input type="text" id="product-search" class="product-search"
-           placeholder="Buscar producto o SKU...">
-    <form method="POST" action="{{ url_for('trigger_crawl') }}"
-          onsubmit="const b=this.querySelector('button'); b.disabled=true; b.textContent='Crawleando...';">
-      <button type="submit" class="crawl-btn">Lanzar crawl ahora</button>
+    <form method="POST" action="{{ url_for('trigger_crawl') }}" id="sync-form">
+      <button type="submit" class="sync">{{ icon('sync', 13) }}<span>Sincronizar</span></button>
     </form>
-  </div>
-</header>
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="flash {{ category }}">{{ message }}</div>
-  {% endfor %}
-{% endwith %}
-<main>
-  {% set tabs = [
-    ('catalog', 'Catalogo'),
-    ('new_products', 'Nuevos'),
-    ('price_events', 'Precio'),
-    ('availability_events', 'Disponibilidad'),
-    ('removed_products', 'Eliminados'),
-  ] %}
+  </header>
 
-  {% macro competitor_card(c) %}
-  <div class="card{{ '' if c.is_own_store else ' card--rival' }}" data-name="{{ c.name }}">
-    <button type="button" class="card-head" data-action="toggle-card">
-      <span class="card-logo{{ '' if c.logo else ' placeholder' }}">
-        {% if c.logo %}
-          <img src="{{ url_for('static', filename='logos/' ~ c.logo) }}" alt="Logo {{ c.name }}">
-        {% else %}
-          {{ c.name[:2]|upper }}
-        {% endif %}
-      </span>
-      {% set display_name = c.name %}
-      {% if c.country and c.name.split()[-1].upper() == c.country.upper() %}
-        {% set display_name = c.name.rsplit(' ', 1)[0] %}
-      {% endif %}
-      <span class="card-title">
-        <span class="name">
-          {{ display_name }}
-          {% if c.country %}<span class="plate-badge" aria-label="Pais: {{ c.country }}">{{ c.country }}</span>{% endif %}
-        </span>
-        <span class="meta">
-          {{ c.total_products }} en catalogo &middot; ultimo crawl: {{ c.last_crawled or "nunca" }}
-        </span>
-      </span>
-      <span class="card-stats">
-        {% if c.new_products %}<span class="chip chip--new">{{ c.new_products|length }} nuevos</span>{% endif %}
-        {% if c.price_events %}<span class="chip chip--price">{{ c.price_events|length }} precio</span>{% endif %}
-        {% if c.availability_events %}<span class="chip chip--availability">{{ c.availability_events|length }} disp.</span>{% endif %}
-      </span>
-      <span class="card-chevron">&#9662;</span>
-    </button>
+  <div class="viewport">
+    <div class="viewport__grid" aria-hidden="true"></div>
+    <span class="bracket bracket--tl" aria-hidden="true"></span>
+    <span class="bracket bracket--tr" aria-hidden="true"></span>
+    <span class="bracket bracket--bl" aria-hidden="true"></span>
+    <span class="bracket bracket--br" aria-hidden="true"></span>
+    <span class="sweep" id="sweep" aria-hidden="true"></span>
 
-    <div class="card-detail">
-      <div class="tabs">
-        {% for key, label in tabs %}
-        <button type="button" class="tab-btn{{ ' active' if loop.first }}" data-tab="{{ key }}" data-action="show-tab">
-          {{ label }} ({{ c[key]|length }})
-        </button>
+    <div class="views" id="views">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="notices">
+        {% for category, message in messages %}
+        <p class="notice notice--{{ category }}">
+          <span class="notice__tag">{{ 'Hecho' if category == 'success' else 'Aviso' }}</span>
+          <span>{{ message }}</span>
+        </p>
         {% endfor %}
       </div>
+      {% endif %}
+    {% endwith %}
 
-      <div class="tab-panel active" data-tab="catalog">
-        <div class="table-wrap">
-          {% if c.catalog %}
-          <table>
-            <thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Ultimo dato</th></tr></thead>
-            <tbody>
-              {% for p in c.catalog %}
-              <tr data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
-                <td>{{ p.sku or "-" }}</td>
-                <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
-                <td>&euro;{{ "%.2f"|format(p.price) }}</td>
-                <td>{% if p.available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
-                <td>{{ p.captured_at }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty">Sin productos todavia. Corre <code>python main.py</code> primero.</div>
-          {% endif %}
+    {# --------------------------- VISTA GENERAL ---------------------------
+       Nace con `is-on` puesto desde el servidor: si el JS fallara al cargar,
+       la pagina seguiria mostrando el panel en vez de quedarse en blanco. #}
+    <section class="view is-on" data-view="panel" id="view-panel" tabindex="-1">
+      <div class="view__head" style="--i:0">
+        <div>
+          <h1 class="view__title">Vista general</h1>
+          <p class="view__sub">
+            Estado de los {{ totals.targets }} escaparates vigilados. Las cifras salen del último
+            catálogo leído de cada tienda; los cambios son los detectados en las últimas 24 horas.
+          </p>
         </div>
       </div>
 
-      <div class="tab-panel" data-tab="new_products">
-        <div class="table-wrap">
-          {% if c.new_products %}
-          <table>
-            <thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Visto</th></tr></thead>
-            <tbody>
-              {% for p in c.new_products %}
-              <tr data-search="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
-                <td>{{ p.sku or "-" }}</td>
-                <td class="title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></td>
-                <td>{% if p.price is not none %}&euro;{{ "%.2f"|format(p.price) }}{% else %}-{% endif %}</td>
-                <td>{% if p.available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
-                <td>{{ p.first_seen }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty">Ningun producto nuevo en las ultimas 24 horas.</div>
-          {% endif %}
+      <div class="gauges" style="--i:1">
+        <div class="gauge">
+          <span class="gauge__label">Productos vigilados</span>
+          <span class="gauge__value"><span class="num" data-countup="{{ totals.products }}">0</span></span>
+          <span class="gauge__foot">en los {{ totals.targets }} escaparates</span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Objetivos en línea</span>
+          <span class="gauge__value"><span class="num" data-countup="{{ totals.live_targets }}">0</span><span class="gauge__unit">/ {{ totals.targets }}</span></span>
+          <span class="gauge__foot">leídos en las últimas 48 h</span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Disponibilidad</span>
+          <span class="gauge__value"><span class="num" data-countup="{{ totals.availability_pct | round(1) }}" data-decimals="1">0</span><span class="gauge__unit">%</span></span>
+          <span class="meter meter--good"><span class="meter__fill" data-fill="{{ totals.availability_pct | round(1) }}"></span></span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Con precio rebajado</span>
+          <span class="gauge__value"><span class="num" data-countup="{{ totals.promo_pct | round(1) }}" data-decimals="1">0</span><span class="gauge__unit">%</span></span>
+          <span class="meter"><span class="meter__fill" data-fill="{{ totals.promo_pct | round(1) }}"></span></span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Cambios 24 h</span>
+          <span class="gauge__value"><span class="num" data-countup="{{ totals.events }}">0</span></span>
+          <span class="gauge__foot">altas, precios, stock y bajas</span>
         </div>
       </div>
 
-      <div class="tab-panel" data-tab="price_events">
-        <div class="table-wrap">
-          {% if c.price_events %}
-          <table>
-            <thead><tr><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Cambio</th><th>Detectado</th></tr></thead>
-            <tbody>
-              {% for e in c.price_events %}
-              <tr data-search="{{ (e.title ~ ' ' ~ (e.sku or '')) | lower }}">
-                <td>{{ e.sku or "-" }}</td>
-                <td class="title">{{ e.title }}</td>
-                <td>&euro;{{ "%.2f"|format(e.old_price) }}</td>
-                <td>&euro;{{ "%.2f"|format(e.new_price) }}</td>
-                <td class="change {{ e.event_type }}">{{ "%+.1f"|format(e.percent_change) }}%</td>
-                <td>{{ e.detected_at }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty">Sin cambios de precio en las ultimas 24 horas.</div>
-          {% endif %}
+      {# --- El elemento central: donde se sitúa cada tienda por precio --- #}
+      <section class="block" style="--i:2">
+        <div class="block__head">
+          <h3>Posicionamiento por precio</h3>
+          <span class="block__note">Cuota del catálogo de cada tienda en cada tramo</span>
+        </div>
+        <div class="block__body">
+          <figure class="heat" id="heat">
+            <div class="heat__scroll">
+              <div class="heat__grid" style="--cols: {{ price_bands | length }}">
+                <span class="heat__corner"></span>
+                {% for low, high, etiqueta in price_bands %}
+                <span class="heat__col" data-col="{{ loop.index0 }}">{{ etiqueta }}</span>
+                {% endfor %}
+                <span class="heat__foot-label">Total</span>
+
+                {% for t in targets %}
+                {% set fila = loop.index0 %}
+                <a class="heat__row{{ ' heat__row--rival' if not t.is_own_store }}"
+                   href="#objetivo/{{ t.slug }}" data-row="{{ fila }}"
+                   title="Abrir {{ t.name }}">
+                  <span class="heat__row-code">{{ t.code }}</span>
+                  <span class="heat__row-name">{{ t.name }}</span>
+                </a>
+                {% for band in t.histogram %}
+                <button type="button" class="heat__cell" data-level="{{ band.level }}"
+                        style="--c: {{ loop.index0 }}"
+                        data-row="{{ fila }}" data-col="{{ loop.index0 }}"
+                        data-name="{{ t.name }}" data-band="{{ band.label }}"
+                        data-count="{{ band.count }}" data-share="{{ band.share | round(3) }}"
+                        data-rival="{{ 0 if t.is_own_store else 1 }}"
+                        aria-label="{{ t.name }}, tramo {{ band.label }} euros: {{ band.count }} productos, {{ (band.share * 100) | pct }} por ciento del catálogo">
+                  {% if band.count %}{{ (band.share * 100) | round | int }}{% else %}·{% endif %}
+                </button>
+                {% endfor %}
+                <span class="heat__total">{{ t.metrics.total | miles }}</span>
+                {% endfor %}
+
+                <span class="heat__axis">Precio de venta, en euros</span>
+              </div>
+            </div>
+
+            <div class="heat__under">
+              <div>
+                <div class="heat__legend">
+                  <span>Menor</span>
+                  <span class="heat__ramp" aria-hidden="true">
+                    <i style="background: var(--heat-1)"></i><i style="background: var(--heat-2)"></i>
+                    <i style="background: var(--heat-3)"></i><i style="background: var(--heat-4)"></i>
+                    <i style="background: var(--heat-5)"></i><i style="background: var(--heat-6)"></i>
+                  </span>
+                  <span>Mayor</span>
+                </div>
+                <p class="heat__scale">La celda más cargada del mapa es {{ (totals.top_share * 100) | pct }} %</p>
+              </div>
+              <output class="heat__readout" id="heat-readout" for="heat">
+                Cada celda es el porcentaje del catálogo de esa tienda que cae en ese tramo de precio. Pasa por encima para ver el detalle.
+              </output>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      {# --- Los objetivos, en el orden en que importan --- #}
+      <section class="block" style="--i:3">
+        <div class="block__head">
+          <h3>Objetivos</h3>
+          <span class="block__note">{{ rivales | length }} de competencia · {{ propias | length }} propios</span>
+        </div>
+        <div class="block__body">
+          <div class="targets">
+            {% for t in targets %}
+            <a class="target{{ ' target--rival' if not t.is_own_store }}" href="#objetivo/{{ t.slug }}">
+              {{ placa(t) }}
+              <span class="target__id">
+                <span class="target__name">
+                  {{ t.name }}
+                  <span class="state{{ ' is-live' if t.is_live }}"><span class="dot{{ ' is-live' if t.is_live }}"></span>{{ 'En línea' if t.is_live else 'Sin lectura' }}</span>
+                </span>
+                <span class="target__meta">
+                  <b>{{ t.code }}</b>
+                  <span>·</span>
+                  <span>{{ 'Competencia' if not t.is_own_store else 'Tienda propia' }}</span>
+                  {% if t.platform %}<span>·</span><span>{{ t.platform | title }}</span>{% endif %}
+                  <span>·</span>
+                  <span>{{ t.last_crawled | fecha }}</span>
+                </span>
+              </span>
+              <span class="target__stat">
+                <span class="label">En catálogo</span>
+                <span class="target__stat-value">{{ t.metrics.total | miles }}</span>
+              </span>
+              <span class="target__stat target__stat--hide">
+                <span class="label">Disponible</span>
+                <span class="target__stat-value">{{ t.metrics.availability_pct | pct }}<small> %</small></span>
+              </span>
+              <span class="target__stat">
+                <span class="label">Precio mediano</span>
+                <span class="target__stat-value">{{ t.metrics.median_price | eur }}</span>
+              </span>
+              <span class="chips">
+                {% if t.new_products %}<span class="chip chip--new">{{ t.new_products | length }} altas</span>{% endif %}
+                {% if t.price_events %}<span class="chip chip--price">{{ t.price_events | length }} precios</span>{% endif %}
+                {% if t.availability_events %}<span class="chip chip--stock">{{ t.availability_events | length }} stock</span>{% endif %}
+                {% if t.removed_products %}<span class="chip chip--gone">{{ t.removed_products | length }} bajas</span>{% endif %}
+                {% if not t.event_count %}<span class="chip chip--quiet">Sin cambios en 24 h</span>{% endif %}
+              </span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <p class="origin" style="--i:4">
+        <span>Origen: MySQL · competitor_monitor</span>
+        <span>Lectura al cargar la página, no en tiempo real</span>
+        <span>Sincronización automática cada día a las 03:00 (Madrid)</span>
+      </p>
+    </section>
+
+    {# ------------------------- VISTA POR OBJETIVO ------------------------- #}
+    {% for t in targets %}
+    <section class="view" data-view="objetivo/{{ t.slug }}" id="view-{{ t.slug }}" tabindex="-1">
+      <div class="view__head" style="--i:0">
+        <div>
+          <h1 class="view__title">{{ t.name }}</h1>
+          <p class="view__sub">
+            {{ 'Competencia externa: el único escaparate de esta lista que no es tuyo.'
+               if not t.is_own_store
+               else 'Tienda propia, vigilada con el mismo criterio que la competencia.' }}
+          </p>
+          <p class="target__meta target__meta--head">
+            <b>{{ t.code }}</b>
+            {% if t.platform %}<span>·</span><span>{{ t.platform | title }}</span>{% endif %}
+            <span>·</span><span>última lectura {{ t.last_crawled | fecha }}</span>
+            {% if t.website_url %}<span>·</span><a class="link" href="{{ t.website_url }}" target="_blank" rel="noopener">Abrir la tienda {{ icon('link', 11) }}</a>{% endif %}
+          </p>
+        </div>
+        <span class="state{{ ' is-live' if t.is_live }}"><span class="dot{{ ' is-live' if t.is_live }}"></span>{{ 'En línea' if t.is_live else 'Sin lectura reciente' }}</span>
+      </div>
+
+      <div class="gauges" style="--i:1">
+        <div class="gauge">
+          <span class="gauge__label">En catálogo</span>
+          <span class="gauge__value"><span class="num">{{ t.metrics.total | miles }}</span></span>
+          <span class="gauge__foot">productos vigentes</span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Disponible</span>
+          <span class="gauge__value"><span class="num">{{ t.metrics.availability_pct | pct }}</span><span class="gauge__unit">%</span></span>
+          <span class="meter meter--good"><span class="meter__fill" data-fill="{{ t.metrics.availability_pct | round(1) }}"></span></span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Con precio rebajado</span>
+          <span class="gauge__value"><span class="num">{{ t.metrics.promo_pct | pct }}</span><span class="gauge__unit">%</span></span>
+          <span class="meter"><span class="meter__fill" data-fill="{{ t.metrics.promo_pct | round(1) }}"></span></span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Precio mediano</span>
+          <span class="gauge__value"><span class="num">{{ t.metrics.median_price | eur }}</span></span>
+          <span class="gauge__foot">mitad del catálogo por debajo</span>
+        </div>
+        <div class="gauge">
+          <span class="gauge__label">Precio más alto</span>
+          <span class="gauge__value"><span class="num">{{ t.metrics.max_price | eur }}</span></span>
+          <span class="gauge__foot">producto más caro del catálogo</span>
         </div>
       </div>
 
-      <div class="tab-panel" data-tab="availability_events">
-        <div class="table-wrap">
-          {% if c.availability_events %}
-          <table>
-            <thead><tr><th>SKU</th><th>Producto</th><th>Antes</th><th>Ahora</th><th>Detectado</th></tr></thead>
-            <tbody>
-              {% for a in c.availability_events %}
-              <tr data-search="{{ (a.title ~ ' ' ~ (a.sku or '')) | lower }}">
-                <td>{{ a.sku or "-" }}</td>
-                <td class="title"><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a></td>
-                <td>{% if a.was_available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
-                <td>{% if a.now_available %}<span class="badge available">Disponible</span>{% else %}<span class="badge unavailable">Agotado</span>{% endif %}</td>
-                <td>{{ a.detected_at }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <section class="block" style="--i:2">
+        <div class="block__head">
+          <h3>Reparto del catálogo por precio</h3>
+          <span class="block__note">Productos por tramo, en euros</span>
+        </div>
+        <div class="block__body">
+          {% if t.metrics.total %}
+          <div class="bars{{ ' bars--rival' if not t.is_own_store }}" style="--cols: {{ t.histogram | length }}">
+            {% set tope = t.histogram | map(attribute='count') | max %}
+            {% for band in t.histogram %}
+            <div class="bars__item" data-h="{{ (band.count / tope * 100) | round(1) if tope else 0 }}">
+              <span class="bars__track">
+                <span class="bars__fill"></span>
+                <span class="bars__value">{{ band.count }}</span>
+              </span>
+              <span class="bars__label">{{ band.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
           {% else %}
-          <div class="table-empty">Sin cambios de disponibilidad en las ultimas 24 horas.</div>
+          {{ sin_datos('Sin catálogo leído', 'Lanza una sincronización para traer los productos de esta tienda.') }}
           {% endif %}
+        </div>
+      </section>
+
+      <section class="block" style="--i:3">
+        <div class="tabs" role="tablist" aria-label="Datos de {{ t.name }}">
+          {% for clave, etiqueta in pestanas %}
+          <button type="button" class="tab{{ ' is-active' if loop.first }}" role="tab"
+                  id="tab-{{ t.slug }}-{{ clave }}" aria-controls="panel-{{ t.slug }}-{{ clave }}"
+                  data-tab="{{ clave }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
+            {{ etiqueta }} <small>{{ t[clave] | length }}</small>
+          </button>
+          {% endfor %}
+        </div>
+        {% for clave, etiqueta in pestanas %}
+        <div class="panel{{ ' is-active' if loop.first }}" data-panel="{{ clave }}" role="tabpanel"
+             id="panel-{{ t.slug }}-{{ clave }}" aria-labelledby="tab-{{ t.slug }}-{{ clave }}" tabindex="0">
+          {% if t[clave] %}
+            {{ tabla(clave, t[clave]) }}
+          {% elif clave == 'catalog' %}
+            {{ sin_datos('Sin catálogo leído', 'Lanza una sincronización para traer los productos de esta tienda.') }}
+          {% else %}
+            {{ sin_datos('Sin cambios en las últimas 24 horas', 'La próxima lectura automática es a las 03:00.') }}
+          {% endif %}
+          <p class="empty u-hide" data-nomatch>Ningún producto de esta pestaña coincide con la búsqueda.</p>
+        </div>
+        {% endfor %}
+      </section>
+
+      <p class="origin" style="--i:4">
+        <span>Objetivo {{ t.code }}</span>
+        <span>{{ t.metrics.total | miles }} productos vigentes · {{ t.total_products | miles }} registrados desde el inicio</span>
+        <span>Origen: MySQL · competitor_monitor</span>
+      </p>
+    </section>
+    {% endfor %}
+
+    {# --------------------------- VISTAS DE REGISTRO ------------------------ #}
+    {% for clave, corto, largo, ico, pista in registros %}
+    {% set filas = targets | map(attribute=clave) | map('list') | sum(start=[]) %}
+    <section class="view" data-view="registro/{{ clave }}" id="view-{{ clave }}" tabindex="-1">
+      <div class="view__head" style="--i:0">
+        <div>
+          <h1 class="view__title">{{ largo }}</h1>
+          <p class="view__sub">{{ pista }} Se muestran los cuatro escaparates juntos, de las últimas 24 horas.</p>
         </div>
       </div>
 
-      <div class="tab-panel" data-tab="removed_products">
-        <div class="table-wrap">
-          {% if c.removed_products %}
-          <table>
-            <thead><tr><th>SKU</th><th>Producto</th><th>Ultimo visto</th><th>Eliminado</th></tr></thead>
-            <tbody>
-              {% for r in c.removed_products %}
-              <tr data-search="{{ (r.title ~ ' ' ~ (r.sku or '')) | lower }}">
-                <td>{{ r.sku or "-" }}</td>
-                <td class="title"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a></td>
-                <td>{{ r.last_seen }}</td>
-                <td>{{ r.removed_at }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty">Ningun producto eliminado en las ultimas 24 horas.</div>
-          {% endif %}
+      <section class="block" style="--i:1">
+        <div class="block__head">
+          <h3>Últimas 24 horas</h3>
+          <span class="block__note">{{ filas | length }} registro{{ '' if filas | length == 1 else 's' }}</span>
         </div>
-      </div>
+        {% if filas %}
+          {{ tabla(clave, filas, true) }}
+          <p class="empty u-hide" data-nomatch>Ningún registro coincide con la búsqueda.</p>
+        {% else %}
+          {{ sin_datos('Nada que revisar', 'No se ha detectado ningún cambio de este tipo en las últimas 24 horas. La próxima lectura automática es a las 03:00.') }}
+        {% endif %}
+      </section>
+
+      <p class="origin" style="--i:2">
+        <span>Ventana: últimas 24 horas</span>
+        <span>Origen: MySQL · competitor_monitor</span>
+      </p>
+    </section>
+    {% endfor %}
 
     </div>
   </div>
-  {% endmacro %}
+</div>
+</div>
 
-  {% set mine = competitor_groups|selectattr('is_own_store')|list %}
-  {% set rivals = competitor_groups|rejectattr('is_own_store')|list %}
-
-  <div class="group-heading rivals">
-    <h2>Competencia</h2>
-  </div>
-  <div class="card-grid">
-    {% for c in rivals %}{{ competitor_card(c) }}{% endfor %}
-    {% if not rivals %}<div class="empty-note">Todavia no hay competidores externos. Anade uno con db.add_competitor(...).</div>{% endif %}
-    <div class="empty-note no-results-note" style="display:none;">Ninguna coincidencia en competencia.</div>
-  </div>
-
-  <div class="section-divider" aria-hidden="true"></div>
-
-  <div class="group-heading mine">
-    <h2>Mis tiendas</h2>
-  </div>
-  <div class="card-grid">
-    {% for c in mine %}{{ competitor_card(c) }}{% endfor %}
-    {% if not mine %}<div class="empty-note">Todavia no hay tiendas propias registradas.</div>{% endif %}
-    <div class="empty-note no-results-note" style="display:none;">Ninguna coincidencia en mis tiendas.</div>
-  </div>
-</main>
-<script>
-  const searchInput = document.getElementById("product-search");
-  const cards = Array.from(document.querySelectorAll(".card"));
-  const cardGrids = Array.from(document.querySelectorAll(".card-grid"));
-
-  function setActiveTab(card, tabKey) {
-    card.querySelectorAll(".tab-btn").forEach(function (btn) {
-      btn.classList.toggle("active", btn.dataset.tab === tabKey);
-    });
-    card.querySelectorAll(".tab-panel").forEach(function (panel) {
-      panel.classList.toggle("active", panel.dataset.tab === tabKey);
-    });
-  }
-
-  function expandCard(card) { card.classList.add("expanded"); }
-  function collapseCard(card) { card.classList.remove("expanded"); }
-
-  document.addEventListener("click", function (event) {
-    const toggleHead = event.target.closest('[data-action="toggle-card"]');
-    if (toggleHead) {
-      const card = toggleHead.closest(".card");
-      card.classList.toggle("expanded");
-      return;
-    }
-    const tabBtn = event.target.closest('[data-action="show-tab"]');
-    if (tabBtn) {
-      const card = tabBtn.closest(".card");
-      setActiveTab(card, tabBtn.dataset.tab);
-    }
-  });
-
-  function applySearch() {
-    const q = searchInput.value.trim().toLowerCase();
-
-    cards.forEach(function (card) {
-      if (!q) {
-        card.classList.remove("no-match");
-        card.querySelectorAll("tbody tr[data-search]").forEach(function (row) {
-          row.style.display = "";
-        });
-        collapseCard(card);
-        return;
-      }
-
-      let cardHasMatch = false;
-      let firstMatchTab = null;
-
-      card.querySelectorAll(".tab-panel").forEach(function (panel) {
-        let panelHasMatch = false;
-        panel.querySelectorAll("tbody tr[data-search]").forEach(function (row) {
-          const match = row.dataset.search.includes(q);
-          row.style.display = match ? "" : "none";
-          if (match) panelHasMatch = true;
-        });
-        if (panelHasMatch) {
-          cardHasMatch = true;
-          if (!firstMatchTab) firstMatchTab = panel.dataset.tab;
-        }
-      });
-
-      card.classList.toggle("no-match", !cardHasMatch);
-      if (cardHasMatch) {
-        expandCard(card);
-        setActiveTab(card, firstMatchTab);
-      }
-    });
-
-    cardGrids.forEach(function (grid) {
-      const gridCards = Array.from(grid.querySelectorAll(".card"));
-      const note = grid.querySelector(".no-results-note");
-      if (!note) return;
-      const noneVisible = q && gridCards.length > 0 && gridCards.every(function (card) {
-        return card.classList.contains("no-match");
-      });
-      note.style.display = noneVisible ? "" : "none";
-    });
-  }
-
-  searchInput.addEventListener("input", applySearch);
-</script>
+<script src="{{ asset('js/console.js') }}" defer></script>
 </body>
 </html>

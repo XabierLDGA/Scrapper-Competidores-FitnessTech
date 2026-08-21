@@ -1,0 +1,1475 @@
+/* =========================================================================
+   CONSOLA DE VIGILANCIA DE MERCADO — FitnessTech
+   -------------------------------------------------------------------------
+   Lenguaje visual: instrumento, no tarjeta. La estructura se dibuja con
+   filetes de 1px sobre negro, nunca con sombras ni halos. El color esta
+   racionado: ambar = sistema, rojo = competencia externa y subidas de
+   precio, verde/azul = lecturas de dato. Nada de color decorativo.
+
+   Secciones:
+     01  Tokens
+     02  Base y utilidades
+     03  Barra lateral
+     04  Barra superior
+     05  Visor (reticula, marcas de encuadre, barrido)
+     06  Bloques y titulos
+     07  Franja de instrumentos
+     08  Mapa de calor de posicionamiento
+     09  Barras de un solo objetivo
+     10  Lista de objetivos
+     11  Pestanas y tablas
+     12  Avisos
+     13  Movimiento
+     14  Adaptacion a pantalla estrecha
+   ========================================================================= */
+
+/* ---------- 01  Tokens ------------------------------------------------- */
+
+:root {
+  /* Superficies. La sala es mas oscura que el visor: el visor "emite". */
+  --void: #07090a;
+  --surface: #0e1215;
+  --surface-2: #141a1d;
+  --surface-3: #1b2227;
+
+  /* Filetes. Toda la estructura de la pantalla se dibuja con estos. */
+  --rule: rgba(200, 224, 236, 0.085);
+  --rule-2: rgba(200, 224, 236, 0.17);
+
+  /* Tinta. --mark es solo para marcas decorativas sin informacion. */
+  --ink: #e4eaed;
+  --ink-2: #9aa6ac;
+  --ink-3: #7a868d;
+  --mark: #46525a;
+
+  /* Ambar: estado del sistema. Nav activa, foco, "en linea", barrido. */
+  --amber: #f0a500;
+  --amber-ink: #120d02;
+  --amber-wash: rgba(240, 165, 0, 0.11);
+  --amber-line: rgba(240, 165, 0, 0.32);
+
+  /* Rojo: reservado a la competencia externa y a las subidas de precio. */
+  --signal: #e5484d;
+  --signal-wash: rgba(229, 72, 77, 0.11);
+  --signal-line: rgba(229, 72, 77, 0.34);
+
+  /* Lecturas de dato. */
+  --good: #3fb98b;
+  --info: #4da3ff;
+
+  /* Rampa secuencial de un solo tono para el mapa de calor. Generada en
+     OKLCH con L monotona (paso de 0,098) y tono fijo en 76 grados. El paso
+     mas bajo se funde casi con la superficie a proposito: un mapa de calor
+     tiene que leerse oscuro con focos, no como un tablero encendido. Eso
+     no deja ninguna celda ilegible porque cada una lleva su cifra impresa
+     (tinta clara en los pasos 1-3, oscura en los 4-6: todos por encima de
+     4,5:1). */
+  --heat-1: #493000;
+  --heat-2: #6b4701;
+  --heat-3: #8e6004;
+  --heat-4: #b47a00;
+  --heat-5: #da9602;
+  --heat-6: #ffb42c;
+
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --rail-w: 248px;
+  --rail-w-min: 62px;
+  --r: 2px;
+}
+
+/* ---------- 02  Base y utilidades -------------------------------------- */
+
+* { box-sizing: border-box; }
+
+html { background: var(--void); }
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  background: var(--void);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button { font: inherit; color: inherit; background: none; border: none; }
+
+:focus-visible {
+  outline: 1px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.u-hide { display: none !important; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+/* Micro-etiqueta: el tratamiento tipografico que sostiene toda la pantalla.
+   Mono en versalitas con el tracking muy abierto, como la rotulacion de un
+   mapa de reconocimiento. */
+.label {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.console {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  min-height: 100vh;
+  transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.console.is-collapsed { grid-template-columns: var(--rail-w-min) minmax(0, 1fr); }
+
+/* Velo del menu en movil. Fijo desde el principio para que no ocupe una
+   columna de la rejilla en escritorio. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(4, 6, 7, 0.72);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.24s, visibility 0.24s;
+}
+
+/* ---------- 03  Barra lateral ------------------------------------------ */
+
+.rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  background: var(--void);
+  border-right: 1px solid var(--rule);
+  overflow: hidden;
+}
+
+.rail__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 62px;
+  padding: 0 14px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.rail__mark {
+  flex: none;
+  width: 22px; height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--amber-line);
+  border-radius: var(--r);
+  background: var(--amber-wash);
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--amber);
+}
+
+.rail__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rail__name b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.rail__name span {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--mark);
+}
+
+.rail__fold {
+  flex: none;
+  width: 24px; height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.rail__fold:hover { color: var(--ink); border-color: var(--rule-2); background: var(--surface-2); }
+.rail__fold svg { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
+.is-collapsed .rail__fold svg { transform: rotate(180deg); }
+
+.rail__search {
+  position: relative;
+  padding: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.rail__search svg {
+  position: absolute;
+  left: 25px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--mark);
+  pointer-events: none;
+}
+
+.search {
+  width: 100%;
+  height: 32px;
+  padding: 0 34px 0 32px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.search::placeholder { color: var(--mark); }
+.search:focus { outline: none; border-color: var(--amber-line); background: var(--surface-2); }
+.search::-webkit-search-cancel-button { display: none; }
+
+/* Pista de atajo: desaparece en cuanto el campo tiene foco o texto. */
+.search-key {
+  position: absolute;
+  right: 22px; top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  color: var(--mark);
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.search:focus ~ .search-key,
+.rail__search.is-filled .search-key { opacity: 0; }
+
+.rail__nav {
+  position: relative;
+  /* Sin relleno arriba: el indicador se coloca con offsetTop, que se mide
+     desde otro borde que el `top` del propio indicador, y cualquier relleno
+     superior lo descuadraria justo esa cantidad. El aire de arriba lo pone
+     el primer rotulo de seccion con su propio relleno. */
+  padding: 0 0 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+/* Indicador de posicion: una sola barra ambar que se desliza entre items,
+   en vez de pintar y despintar un borde en cada uno. */
+.rail__caret {
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 30px;
+  background: var(--amber);
+  border-radius: 0 var(--r) var(--r) 0;
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s;
+  pointer-events: none;
+}
+
+.rail__caret.is-on { opacity: 1; }
+
+.rail__section {
+  margin: 0;
+  padding: 16px 18px 7px;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--mark);
+  white-space: nowrap;
+}
+
+.navitem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 30px;
+  padding: 0 14px 0 18px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.navitem:hover { color: var(--ink); background: var(--surface); }
+.navitem.is-active { color: var(--ink); background: var(--surface-2); }
+.navitem.is-active .navitem__text { color: var(--amber); }
+
+.navitem__glyph {
+  flex: none;
+  width: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--mark);
+}
+
+.navitem:hover .navitem__glyph,
+.navitem.is-active .navitem__glyph { color: var(--ink-3); }
+
+.navitem__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Contador a la derecha del item. Se apaga cuando vale cero para que las
+   cifras que hay solo salten cuando de verdad hay algo que mirar. */
+.navitem__count {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.navitem__count.is-zero { color: var(--mark); }
+.navitem__count.is-hit { color: var(--amber); }
+
+/* Punto de estado: sube el pulso solo si el objetivo se ha leido en 48h. */
+.dot {
+  flex: none;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--mark);
+}
+
+/* El punto dice ESTADO, no identidad: verde es "hay lectura reciente" para
+   todos por igual. Pintarlo de rojo en el rival hacia pensar que le pasaba
+   algo. Su identidad ya la llevan el texto, el filete y el codigo. */
+.dot.is-live { background: var(--good); animation: pulse 2.6s ease-in-out infinite; }
+.navitem--rival.is-active .navitem__text { color: var(--signal); }
+
+.rail__status {
+  padding: 13px 18px;
+  border-top: 1px solid var(--rule);
+  background: var(--void);
+}
+
+.rail__status dl { margin: 0; display: grid; gap: 7px; }
+.rail__status div { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.rail__status dt { font-family: var(--mono); font-size: 0.5625rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mark); white-space: nowrap; }
+.rail__status dd { margin: 0; font-family: var(--mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+
+/* Rail plegado: se queda una columna de iconos y puntos de estado. Todo lo
+   que lleva texto se apaga; el boton de plegar ocupa el sitio de la marca y
+   la lupa se convierte en el unico control de busqueda (al pulsarla se
+   despliega el rail y se enfoca el campo). */
+/* `display: none` y no `visibility: hidden`: lo segundo sigue ocupando su
+   ancho, el contenido del rail seguia midiendo 205px dentro de una columna
+   de 62px, y el recorte se llevaba por delante el boton de plegar y la
+   lupa. */
+.is-collapsed .rail__name,
+.is-collapsed .rail__mark,
+.is-collapsed .rail__section,
+.is-collapsed .navitem__text,
+.is-collapsed .navitem__count,
+.is-collapsed .rail__status,
+.is-collapsed .search-key { display: none; }
+
+.is-collapsed .navitem:first-of-type { margin-top: 14px; }
+
+.is-collapsed .rail__brand { padding: 0; justify-content: center; }
+.is-collapsed .rail__fold { position: static; }
+
+.is-collapsed .rail__search { padding: 0; height: 52px; display: grid; place-items: center; cursor: pointer; }
+.is-collapsed .rail__search svg { position: static; transform: none; }
+.is-collapsed .rail__search:hover svg { color: var(--ink-2); }
+.is-collapsed .search {
+  position: absolute;
+  width: 100%; height: 100%;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+.is-collapsed .search::placeholder { color: transparent; }
+
+.is-collapsed .navitem { padding: 0; justify-content: center; gap: 0; }
+
+/* ---------- 04  Barra superior ----------------------------------------- */
+
+.stage {
+  display: grid;
+  grid-template-rows: 62px minmax(0, 1fr);
+  min-width: 0;
+  background: var(--void);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.topbar__menu {
+  display: none;
+  width: 28px; height: 28px;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.crumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.crumbs__root { color: var(--mark); }
+.crumbs__sep { color: var(--mark); }
+.crumbs__here { color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+
+.telemetry {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.telemetry b { font-weight: 500; color: var(--ink-2); }
+.telemetry i { font-style: normal; color: var(--mark); }
+
+.sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--amber-line);
+  border-radius: var(--r);
+  background: var(--amber-wash);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sync:hover { background: var(--amber); color: var(--amber-ink); }
+.sync:disabled { opacity: 0.55; cursor: wait; }
+.sync:disabled:hover { background: var(--amber-wash); color: var(--amber); }
+.sync svg { flex: none; }
+.sync:disabled svg { animation: spin 1.1s linear infinite; }
+
+/* ---------- 05  Visor --------------------------------------------------- */
+
+.viewport {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--void);
+}
+
+/* Reticula de carta topografica: malla fina de 26px con una mayor cada
+   cuatro, y viñeta para que la atencion caiga al centro. Vive detras de
+   los paneles, que son casi opacos: se intuye en los margenes. */
+.viewport__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px),
+    linear-gradient(rgba(200, 224, 236, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 224, 236, 0.03) 1px, transparent 1px);
+  background-size: 104px 104px, 104px 104px, 26px 26px, 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 42%, #000 25%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 42%, #000 25%, transparent 100%);
+  opacity: 0.75;
+}
+
+/* Marcas de encuadre en las cuatro esquinas del visor. */
+.bracket {
+  position: absolute;
+  width: 13px; height: 13px;
+  border: 1px solid var(--mark);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.bracket--tl { top: 11px; left: 11px; border-right: 0; border-bottom: 0; }
+.bracket--tr { top: 11px; right: 11px; border-left: 0; border-bottom: 0; }
+.bracket--bl { bottom: 11px; left: 11px; border-right: 0; border-top: 0; }
+.bracket--br { bottom: 11px; right: 11px; border-left: 0; border-top: 0; }
+
+/* Linea de barrido: recorre el visor una sola vez por cambio de vista. */
+.sweep {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  box-shadow: 0 0 14px rgba(240, 165, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.sweep.is-running { animation: sweep 0.62s cubic-bezier(0.4, 0, 0.6, 1); }
+
+.views {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+.view { display: none; padding: 26px 30px 60px; }
+.view.is-on { display: block; }
+
+/* Firma del visor: la linea de origen del dato, abajo del todo. Dice de
+   donde sale lo que se esta mirando y que no es tiempo real. */
+.origin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 34px;
+  padding-top: 13px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  color: var(--mark);
+}
+
+/* ---------- 06  Bloques y titulos --------------------------------------- */
+
+.view__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.view__title {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.view__sub {
+  margin: 7px 0 0;
+  max-width: 62ch;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.block {
+  position: relative;
+  margin-top: 22px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: rgba(14, 18, 21, 0.88);
+}
+
+.block__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.block__head h3 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.block__note {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.block__body { padding: 16px; }
+
+/* ---------- 07  Franja de instrumentos ---------------------------------- */
+
+/* Una sola franja partida por filetes, no cuatro tarjetas flotando: en un
+   cuadro de mandos los indicadores comparten carcasa. */
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  margin-top: 4px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: rgba(14, 18, 21, 0.88);
+  overflow: hidden;
+}
+
+.gauge {
+  padding: 15px 17px 14px;
+  border-left: 1px solid var(--rule);
+}
+
+.gauge:first-child { border-left: 0; }
+
+.gauge__label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.gauge__value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 9px;
+  font-family: var(--mono);
+  font-size: 1.75rem;
+  font-weight: 400;
+  /* Tracking negativo: la mono a tamano grande abre demasiado las cifras. */
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.gauge__unit {
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.gauge__foot {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  line-height: 1.45;
+  color: var(--mark);
+}
+
+/* Medidor fino. La pista es un paso bajo de la misma rampa, no un gris
+   suelto, para que el estado se lea en toda la barra. */
+.meter {
+  display: block;
+  position: relative;
+  height: 3px;
+  margin-top: 13px;
+  border-radius: 2px;
+  background: var(--heat-1);
+  overflow: hidden;
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: var(--amber);
+  transition: width 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.meter--good .meter__fill { background: var(--good); }
+.meter--good { background: rgba(63, 185, 139, 0.2); }
+
+/* ---------- 08  Mapa de calor ------------------------------------------- */
+
+/* La matriz a la izquierda y la lectura a la derecha, en el aire que deja
+   el tope de ancho de las celdas. Por debajo de 1240px se apilan. */
+.heat {
+  margin: 0;
+  display: grid;
+  /* minmax(0, max-content) y no max-content a secas: si no, la matriz se
+     niega a encoger y empuja la lectura fuera del bloque. */
+  grid-template-columns: minmax(0, max-content) minmax(230px, 1fr);
+  gap: 12px 28px;
+  align-items: end;
+}
+
+.heat__scroll {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+.heat__grid {
+  display: grid;
+  /* Tope de 94px por celda: igual que las barras, la celda no llena su
+     hueco. Sin el tope, 28 bloques saturados de 180px se comen la pantalla
+     y el mapa deja de leerse como un instrumento. */
+  grid-template-columns: minmax(158px, max-content) repeat(var(--cols), minmax(50px, 94px)) minmax(50px, max-content);
+  /* 2px de superficie entre celdas: el hueco separa, no un borde dibujado. */
+  gap: 2px;
+  min-width: 620px;
+}
+
+.heat__corner { }
+
+.heat__col,
+.heat__foot-label {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 7px;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  transition: color 0.15s;
+}
+
+.heat__foot-label { justify-content: flex-end; padding-right: 2px; }
+.heat__col.is-lit { color: var(--amber); }
+
+.heat__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  /* El filete de identidad vive dentro de la caja de la fila: sacarlo con
+     un margen negativo lo dejaba recortado por el contenedor con scroll. */
+  padding: 0 12px 0 9px;
+  border-left: 2px solid transparent;
+  min-width: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.heat__row-code {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.heat__row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-2);
+  transition: color 0.15s;
+}
+
+.heat__row:hover .heat__row-name,
+.heat__row.is-lit .heat__row-name { color: var(--ink); }
+
+/* Identidad de la competencia externa: filete y codigo en rojo. El color de
+   las celdas NO cambia: si cada fila usase su propia rampa, la intensidad
+   dejaria de ser comparable entre filas. */
+.heat__row--rival { border-left-color: var(--signal); }
+.heat__row--rival .heat__row-code { color: var(--signal); }
+
+.heat__cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 34px;
+  border-radius: 1px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mark);
+  cursor: pointer;
+  transition: transform 0.12s, filter 0.15s;
+}
+
+.heat__cell[data-level="1"] { background: var(--heat-1); color: var(--ink); }
+.heat__cell[data-level="2"] { background: var(--heat-2); color: var(--ink); }
+.heat__cell[data-level="3"] { background: var(--heat-3); color: var(--ink); }
+.heat__cell[data-level="4"] { background: var(--heat-4); color: var(--amber-ink); }
+.heat__cell[data-level="5"] { background: var(--heat-5); color: var(--amber-ink); }
+.heat__cell[data-level="6"] { background: var(--heat-6); color: var(--amber-ink); }
+
+.heat__cell:hover,
+.heat__cell:focus-visible { filter: brightness(1.35); transform: scale(1.06); z-index: 2; }
+
+.heat__total {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 2px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.heat__axis {
+  grid-column: 2 / -1;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mark);
+}
+
+.heat__under {
+  display: grid;
+  gap: 13px;
+  align-content: end;
+  min-width: 0;
+}
+
+.heat__legend {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--mark);
+}
+
+.heat__ramp { display: flex; gap: 2px; }
+.heat__ramp i { display: block; width: 20px; height: 8px; border-radius: 1px; }
+
+.heat__scale {
+  margin: 7px 0 0;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  color: var(--mark);
+}
+
+/* Lectura del cursor. Siempre presente: en reposo explica que hacer, asi
+   que la celda nunca depende solo del color para decir su valor. */
+.heat__readout {
+  min-width: 0;
+  padding: 11px 13px;
+  line-height: 1.55;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--rule-2);
+  border-radius: var(--r);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-2);
+  transition: border-color 0.15s;
+}
+
+.heat__readout.is-lit { border-left-color: var(--amber); color: var(--ink); }
+.heat__readout.is-lit.is-rival { border-left-color: var(--signal); }
+.heat__readout b { font-weight: 500; color: var(--ink); }
+.heat__readout em { font-style: normal; color: var(--amber); }
+.heat__readout.is-rival em { color: var(--signal); }
+
+/* ---------- 09  Barras de un solo objetivo ------------------------------ */
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 2px;
+  align-items: end;
+  /* Aire para la cifra de la barra mas alta, que se sale del carril. */
+  padding-top: 22px;
+}
+
+.bars__item {
+  display: grid;
+  grid-template-rows: 116px auto;
+  justify-items: center;
+  gap: 8px;
+}
+
+.bars__track {
+  position: relative;
+  width: 100%;
+  height: 116px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 1px solid var(--rule);
+}
+
+.bars__fill {
+  display: block;
+  /* Tope de 24px: la barra nunca llena su hueco, el aire sobrante es parte
+     del ritmo de la franja. Punta redondeada, base a escuadra sobre la
+     linea de cero. */
+  width: min(24px, 62%);
+  height: var(--h, 0%);
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--amber);
+  transition: height 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* La cifra cabalga la punta de la barra en vez de quedarse en una fila
+   fija: asi se lee pegada al dato que nombra. */
+.bars__value {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(var(--h, 0%) + 8px);
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  transition: bottom 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.bars--rival .bars__fill { background: var(--signal); }
+
+.bars__label {
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* ---------- 10  Lista de objetivos -------------------------------------- */
+
+.targets { display: grid; gap: 2px; }
+
+.target {
+  display: grid;
+  /* La ultima columna lleva tope: con cuatro chips sin limite empujaba la
+     linea de datos del objetivo por debajo de su hueco y se solapaba con
+     la cifra de al lado. */
+  grid-template-columns: 74px minmax(150px, 1.4fr) repeat(3, minmax(92px, 0.8fr)) minmax(108px, 232px);
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: rgba(14, 18, 21, 0.88);
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s, transform 0.16s;
+}
+
+.target:hover {
+  background: var(--surface-2);
+  border-color: var(--rule-2);
+  transform: translateX(3px);
+}
+
+.target--rival { border-left: 2px solid var(--signal-line); }
+.target--rival:hover { border-left-color: var(--signal); }
+
+.plate {
+  width: 74px; height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: #c8ced1;
+  /* Los logos llegan como capturas con fondo blanco: a plena luz serian lo
+     mas brillante de la pantalla y se comerian la atencion. Apagados y sin
+     color se comportan; recuperan ambos al pasar por encima. */
+  filter: grayscale(1) brightness(0.62) contrast(1.1);
+  transition: filter 0.24s;
+}
+
+.target:hover .plate { filter: none; }
+.plate img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.plate--empty {
+  background: var(--surface-2);
+  filter: none;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.target__id { min-width: 0; }
+
+.target__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.target__meta {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: var(--mark);
+}
+
+.target__meta b { font-weight: 500; color: var(--ink-3); }
+.target--rival .target__meta b { color: var(--signal); }
+.target__meta--head { margin: 11px 0 0; }
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--amber);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.link:hover { border-bottom-color: var(--amber-line); }
+
+.target__stat { min-width: 0; }
+.target__stat .label { display: block; font-size: 0.5625rem; letter-spacing: 0.16em; color: var(--mark); }
+
+.target__stat-value {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.target__stat-value small { font-size: 0.625rem; color: var(--ink-3); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.chip::before { content: ""; width: 5px; height: 5px; border-radius: 1px; background: currentColor; }
+.chip--new { color: var(--good); border-color: rgba(63, 185, 139, 0.3); }
+.chip--price { color: var(--amber); border-color: var(--amber-line); }
+.chip--stock { color: var(--info); border-color: rgba(77, 163, 255, 0.3); }
+.chip--gone { color: var(--signal); border-color: var(--signal-line); }
+.chip--quiet { color: var(--mark); }
+.chip--quiet::before { display: none; }
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mark);
+}
+
+.state.is-live { color: var(--good); }
+
+/* ---------- 11  Pestanas y tablas --------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab {
+  position: relative;
+  padding: 11px 13px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 13px; right: 13px; bottom: -1px;
+  height: 1px;
+  background: var(--amber);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tab:hover { color: var(--ink-2); }
+.tab.is-active { color: var(--amber); }
+.tab.is-active::after { transform: scaleX(1); }
+.tab small { font-variant-numeric: tabular-nums; color: var(--mark); letter-spacing: 0; }
+.tab.is-active small { color: var(--amber); }
+
+.panel { display: none; }
+.panel.is-active { display: block; }
+
+.tablewrap {
+  max-height: 520px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 9px 14px;
+  text-align: left;
+  white-space: nowrap;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+tbody td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: var(--surface-2); }
+
+/* Marca de fila al pasar: un filete ambar en el borde, sin desplazar nada. */
+tbody td:first-child { position: relative; }
+tbody td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--amber);
+  transform: scaleY(0);
+  transition: transform 0.14s;
+}
+tbody tr:hover td:first-child::before { transform: scaleY(1); }
+
+td.t-name {
+  white-space: normal;
+  min-width: 240px;
+  max-width: 420px;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+td.t-name a { border-bottom: 1px solid transparent; transition: border-color 0.15s, color 0.15s; }
+td.t-name a:hover { color: var(--amber); border-bottom-color: var(--amber-line); }
+
+td.t-sku { color: var(--mark); font-size: 0.6875rem; }
+td.t-target { font-size: 0.6875rem; letter-spacing: 0.06em; color: var(--ink-3); }
+td.t-num { text-align: right; }
+td.t-when { color: var(--mark); font-size: 0.6875rem; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.badge.is-yes { color: var(--good); }
+.badge.is-no { color: var(--signal); }
+
+.delta { font-weight: 500; }
+.delta.increase { color: var(--signal); }
+.delta.decrease { color: var(--good); }
+.arrow { display: inline-block; margin-right: 3px; }
+
+/* ---------- 12  Avisos --------------------------------------------------- */
+
+.empty {
+  padding: 30px 16px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--mark);
+}
+
+.empty b { display: block; margin-bottom: 6px; font-weight: 500; color: var(--ink-3); }
+
+.notices { display: grid; gap: 8px; padding: 22px 30px 0; }
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--rule-2);
+  border-radius: var(--r);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  animation: rise 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.notice--success { border-left-color: var(--good); }
+.notice--error { border-left-color: var(--signal); }
+.notice__tag {
+  flex: none;
+  font-size: 0.5625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mark);
+  padding-top: 2px;
+}
+
+/* ---------- 13  Movimiento ----------------------------------------------- */
+
+@keyframes sweep {
+  0% { opacity: 0; transform: translateY(0); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(var(--sweep-to, 70vh)); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.55; box-shadow: 0 0 0 3px transparent; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Entrada escalonada de los bloques de la vista activa. */
+.view.is-on > * {
+  animation: rise 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* El mapa se pinta columna a columna, como un escaneo. */
+.view.is-on .heat__cell {
+  animation: fade 0.3s ease both;
+  animation-delay: calc(180ms + var(--c, 0) * 42ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- 14  Adaptacion a pantalla estrecha --------------------------- */
+
+/* La matriz a ancho completo mide unos 880px; con la lectura al lado hacen
+   falta 1480px de ventana para que las dos quepan sin recortar. Por debajo
+   de eso se apilan. */
+@media (max-width: 1480px) {
+  .heat { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .heat__under { margin-top: 3px; grid-template-columns: max-content minmax(220px, 1fr); gap: 20px; align-items: center; }
+}
+
+@media (max-width: 720px) {
+  .heat__under { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+
+@media (max-width: 1180px) {
+  .target {
+    grid-template-columns: 62px minmax(130px, 1.3fr) repeat(2, minmax(84px, 0.7fr)) minmax(110px, auto);
+  }
+  .target__stat--hide { display: none; }
+  .plate { width: 62px; height: 38px; }
+}
+
+@media (max-width: 900px) {
+  .console { grid-template-columns: minmax(0, 1fr); }
+  .console.is-collapsed { grid-template-columns: minmax(0, 1fr); }
+
+  .rail {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 40;
+    width: var(--rail-w);
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .console.is-open .rail { transform: none; }
+
+  .console.is-open .scrim { opacity: 1; visibility: visible; pointer-events: auto; }
+
+  .topbar__menu { display: grid; }
+  .rail__fold { display: none; }
+  .telemetry__clock { display: none; }
+  .view { padding: 20px 16px 50px; }
+  .notices { padding: 18px 16px 0; }
+
+  .target {
+    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-areas:
+      "plate id"
+      "stats stats"
+      "chips chips";
+    gap: 12px 14px;
+  }
+  .plate { grid-area: plate; width: 54px; height: 34px; }
+  .target__id { grid-area: id; }
+  .target__stat { display: none; }
+  .chips { grid-area: chips; justify-content: flex-start; }
+
+  .gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gauge:nth-child(odd) { border-left: 0; }
+  .gauge:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+}
+
+@media (max-width: 560px) {
+  .view__title { font-size: 0.8125rem; letter-spacing: 0.22em; }
+  .telemetry { gap: 10px; }
+  .telemetry__count { display: none; }
+  .sync span { display: none; }
+  .sync { padding: 0 10px; }
+
+  /* Dos columnas y cifras mas pequenas: apiladas de una en una, la franja
+     de instrumentos ocupaba una pantalla entera antes de llegar al mapa. */
+  .gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gauge { padding: 12px 13px; }
+  .gauge__value { font-size: 1.375rem; margin-top: 7px; }
+  .gauge__label { font-size: 0.5rem; letter-spacing: 0.14em; }
+  .gauge__foot { font-size: 0.5625rem; }
+
+  .block__head { flex-direction: column; align-items: flex-start; gap: 5px; }
+  .block__note { margin-left: 0; text-align: left; }
+}
+
+@media (max-width: 380px) {
+  .gauges { grid-template-columns: minmax(0, 1fr); }
+  .gauge { border-left: 0; }
+  .gauge:not(:first-child) { border-top: 1px solid var(--rule); }
+}

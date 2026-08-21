@@ -82,7 +82,7 @@ print(f"Competidor anadido: ID {competitor_id}")
 python main.py
 ```
 
-### 6. Dashboard local
+### 6. Panel local
 
 Para ver competidores, catalogo actual y cambios de precio sin escribir SQL:
 
@@ -93,6 +93,20 @@ python dashboard.py
 Abre http://localhost:5000 en el navegador. Es un servidor de desarrollo
 Flask (`debug=True`) pensado solo para uso local, no para producción — lee
 directamente de MySQL en cada recarga de pagina, no tiene autenticacion.
+
+El panel es una consola de una sola pagina: el menu lateral conmuta entre
+la **vista general** (telemetria agregada y el mapa de posicionamiento por
+precio), una **vista por objetivo** con sus cinco pestanas de siempre, y
+los **registros**, que cruzan los cuatro escaparates para ver todos los
+cambios de un tipo juntos. La vista viaja en el hash de la URL
+(`#objetivo/titanium-strength`), asi que recargar no te devuelve al
+principio. `/` enfoca el buscador y `Esc` lo limpia.
+
+Todo se renderiza en el servidor: el JavaScript solo decide que vista se
+ve, filtra lo ya pintado y anima las lecturas. Los agregados
+(disponibilidad, promociones, mediana de precio, tramos del mapa de calor)
+viven en `src/metrics.py` como funciones puras, cubiertas por
+`tests/test_metrics.py`.
 
 ### 7. Tests
 
@@ -191,14 +205,24 @@ docker compose down -v    # borra tambien la base de datos
   el estado real de la BD (`get_new_products` / `get_unnotified_events`),
   no listas en memoria — asi el digest es correcto aunque el crawl falle a
   mitad para algun competidor.
-- `dashboard.py` + `templates/dashboard.html` — Vista web de solo lectura
-  sobre MySQL (competidores, catalogo actual, cambios de precio recientes).
-  Sin autenticacion. Local: `python dashboard.py` (servidor de desarrollo
-  Flask, `debug=True`). Docker: se sirve con `waitress` (ver
+- `dashboard.py` + `templates/dashboard.html` + `static/css/console.css` +
+  `static/js/console.js` — Panel web de solo lectura sobre MySQL. `dashboard.py`
+  es una capa fina de Flask: consulta, delega el calculo en `src/metrics.py`
+  y renderiza. Sin autenticacion propia (en el VPS la pone Traefik). Local:
+  `python dashboard.py` (servidor de desarrollo Flask, `debug=True`).
+  Docker: se sirve con `waitress` (ver
   [Despliegue con Docker](#despliegue-con-docker)).
+  > Ojo al iterar en local con `waitress`: Jinja cachea la plantilla al
+  > arrancar, asi que los cambios en `dashboard.html` no se ven hasta
+  > reiniciar el servidor (los de CSS/JS si, son ficheros estaticos).
+- `src/metrics.py` — Agregados derivados del panel (disponibilidad, % con
+  precio rebajado, mediana de precio, tramos del mapa de calor, codigos de
+  objetivo). Funciones puras sobre las filas que devuelve `Database`: ni
+  BD ni Flask, para que el calculo quede cubierto por tests.
 - `scheduler.py` — Ejecuta el crawl diario dentro del contenedor `crawler`
-  (bucle Python que calcula cuanto falta para las 06:00 UTC y espera, en
-  vez de un demonio cron dentro de la imagen).
+  (bucle Python que calcula cuanto falta para las 03:00 de Europe/Madrid y
+  espera, en vez de un demonio cron dentro de la imagen). La zona horaria,
+  no una hora UTC fija, para que siga el cambio de verano/invierno.
 - `Dockerfile` + `docker-compose.yml` — Empaquetado para desplegar en un
   VPS o servidor propio. Una sola imagen para `dashboard` y `crawler`
   (ambos necesitan Playwright/Chromium: el boton "Lanzar crawl ahora" del
