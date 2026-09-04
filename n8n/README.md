@@ -18,8 +18,8 @@ stock y las bajas aunque el crawler si las detectaba.
 
 ```
 Schedule Trigger (semanal, lunes)
-  -> Execute a SQL query   (altas y cambios de precio de 7 dias, excluyendo
-  |                         las tiendas propias)
+  -> Execute a SQL query   (los cuatro tipos de cambio de 7 dias, en cuatro
+  |                         ramas UNION, excluyendo las tiendas propias)
   -> Code in JavaScript    (arma el HTML del email)
   -> If                    (corta si no hay nada que contar)
   -> Send an Email
