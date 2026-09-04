@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@1,700;1,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f6f6; --surface:#ffffff; --surface-2:#fafbfb;
+    --ink:#0c1112; --ink-2:#59666b; --ink-3:#8e9a9e;
+    --line:#e6eaeb; --line-2:#d7dddf;
+    --accent:#00a7af; --accent-ink:#00666b; --accent-wash:rgba(0,167,175,.10);
+    --up-bg:#fdecec; --up-ink:#b3261e;
+    --down-bg:#e7f6ee; --down-ink:#127a4a;
+    --new-bg:#eaf1fe; --new-ink:#2b4ec2;
+    --gone-bg:#f2f0ee; --gone-ink:#6b6259;
+    --stock-bg:#fdf4e3; --stock-ink:#8d6100;
+    --shadow:0 1px 2px rgba(12,17,18,.05);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1215; --surface:#151b1f; --surface-2:#1b2226;
+    --ink:#e4eaed; --ink-2:#9aa6ac; --ink-3:#77848a;
+    --line:#232b30; --line-2:#2c353a;
+    --accent:#00c2cb; --accent-ink:#7fe4e9; --accent-wash:rgba(0,167,175,.16);
+    --up-bg:rgba(226,90,80,.16); --up-ink:#f19b93;
+    --down-bg:rgba(63,190,114,.16); --down-ink:#6fd39a;
+    --new-bg:rgba(94,132,240,.16); --new-ink:#9db2f5;
+    --gone-bg:rgba(150,140,130,.16); --gone-ink:#b6ada4;
+    --stock-bg:rgba(214,158,46,.16); --stock-ink:#e0bc74;
+    --shadow:none;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent-ink);text-decoration:none}
+  a:hover{color:var(--accent)}
+  input,button{font:inherit}
+  ::placeholder{color:var(--ink-3)}
+</style>
+</helmet>
+<div style="display:grid;grid-template-columns:246px 1fr;min-height:100vh;background:var(--bg);color:var(--ink)">
+
+  <aside style="background:#000;display:flex;flex-direction:column;gap:22px;padding:20px 14px;position:sticky;top:0;height:100vh">
+    <div style="display:flex;align-items:center;gap:10px;padding:2px 6px 0">
+      <img src="static/logos/fitnesstech-brand.png" alt="Fitness Tech" style="height:26px;width:auto">
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:0 10px;height:36px">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
+      <input type="search" value="{{ query }}" onInput="{{ onSearch }}" placeholder="Buscar producto o SKU" aria-label="Buscar producto o SKU" style="flex:1;min-width:0;background:none;border:0;outline:none;color:#fff;font-size:13px">
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <p style="margin:0 0 6px 8px;font-family:Archivo,sans-serif;font-style:italic;font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38)">Panel principal</p>
+      <a href="#" onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;font-size:13.5px;color:{{ homeInk }};background:{{ homeBg }}">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M2 8h12M2 12h8"></path></svg>
+        <span style="flex:1">Cambios</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.55)">{{ changeCount }}</span>
+      </a>
+
+      <p style="margin:18px 0 6px 8px;font-family:Archivo,sans-serif;font-style:italic;font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38)">Mis tiendas</p>
+      <sc-for list="{{ myStores }}" as="s" hint-placeholder-count="3">
+        <a href="#" onClick="{{ s.open }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;font-size:13.5px;color:{{ s.ink }};background:{{ s.bg }}">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{ s.dot }};flex:none"></span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.55)">{{ s.total }}</span>
+        </a>
+      </sc-for>
+
+      <p style="margin:18px 0 6px 8px;font-family:Archivo,sans-serif;font-style:italic;font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38)">Competencia</p>
+      <sc-for list="{{ rivalStores }}" as="s" hint-placeholder-count="1">
+        <a href="#" onClick="{{ s.open }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;font-size:13.5px;color:{{ s.ink }};background:{{ s.bg }}">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{ s.dot }};flex:none"></span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.45)">{{ s.total }}</span>
+        </a>
+      </sc-for>
+
+      <p style="margin:18px 0 6px 8px;font-family:Archivo,sans-serif;font-style:italic;font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38)">Análisis</p>
+      <span style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;font-size:13.5px;color:rgba(255,255,255,.32)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13V7M8 13V3M13 13v-4"></path></svg>
+        <span style="flex:1">Comparativa Titanium</span>
+        <span style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:2px 6px">Pronto</span>
+      </span>
+    </nav>
+
+    <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 8px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.42)">Madrid {{ clock }}</span>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="Cambiar tema" style="width:28px;height:28px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);background:none;border-radius:8px;color:rgba(255,255,255,.6);cursor:pointer" style-hover="color:#fff;border-color:rgba(255,255,255,.3)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"></path></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main style="min-width:0;display:flex;flex-direction:column">
+    <header style="display:flex;align-items:center;gap:16px;padding:18px 28px;border-bottom:1px solid var(--line);background:var(--surface)">
+      <h1 style="margin:0;font-family:Archivo,sans-serif;font-style:italic;font-weight:800;font-size:19px;letter-spacing:-.01em;text-transform:uppercase;color:var(--ink)">{{ title }}</h1>
+      <span style="font-size:13px;color:var(--ink-3)">{{ subtitle }}</span>
+      <button type="button" onClick="{{ sync }}" style="margin-left:auto;display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-size:13px;font-weight:500;cursor:pointer" style-hover="filter:brightness(1.07)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8a6 6 0 1 1-1.8-4.3"></path><path d="M14 2v4h-4"></path></svg>
+        <span>Sincronizar</span>
+      </button>
+    </header>
+
+    <div style="padding:22px 28px 40px;display:flex;flex-direction:column;gap:22px">
+
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:11.5px;color:var(--ink-3);margin-right:4px">Tienda</span>
+          <sc-for list="{{ storeFilters }}" as="s" hint-placeholder-count="5">
+            <button type="button" onClick="{{ s.pick }}" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:999px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.ink }};font-size:12.5px;cursor:pointer">
+              <span style="width:6px;height:6px;border-radius:50%;background:{{ s.dot }}"></span>
+              <span>{{ s.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px">
+          <sc-for list="{{ stats }}" as="k" hint-placeholder-count="5">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)">
+              <p style="margin:0;font-size:11.5px;letter-spacing:.02em;color:var(--ink-3)">{{ k.label }}</p>
+              <p style="margin:8px 0 0;font-family:'IBM Plex Mono',monospace;font-size:23px;font-weight:500;color:var(--ink);letter-spacing:-.02em">{{ k.value }}<span style="font-size:13px;color:var(--ink-3);margin-left:3px">{{ k.unit }}</span></p>
+            </div>
+          </sc-for>
+        </div>
+
+        <section style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+              <button type="button" onClick="{{ f.pick }}" style="height:28px;padding:0 11px;border-radius:999px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.ink }};font-size:12.5px;cursor:pointer">{{ f.label }} <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.6">{{ f.n }}</span></button>
+            </sc-for>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead>
+                <tr style="text-align:left;color:var(--ink-3)">
+                  <th style="font-weight:500;font-size:11.5px;padding:9px 14px;border-bottom:1px solid var(--line)">Tienda</th>
+                  <th style="font-weight:500;font-size:11.5px;padding:9px 14px;border-bottom:1px solid var(--line)">Cambio</th>
+                  <th style="font-weight:500;font-size:11.5px;padding:9px 14px;border-bottom:1px solid var(--line)">Producto</th>
+                  <th style="font-weight:500;font-size:11.5px;padding:9px 14px;border-bottom:1px solid var(--line);text-align:right">Detalle</th>
+                  <th style="font-weight:500;font-size:11.5px;padding:9px 14px;border-bottom:1px solid var(--line);text-align:right">Detectado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+                  <tr style="border-bottom:1px solid var(--line)" style-hover="background:var(--surface-2)">
+                    <td style="padding:11px 14px;white-space:nowrap"><span style="display:inline-block;padding:3px 9px;border-radius:999px;background:var(--accent-wash);color:var(--accent-ink);font-size:12px">{{ r.store }}</span></td>
+                    <td style="padding:11px 14px;white-space:nowrap"><span style="display:inline-block;padding:3px 9px;border-radius:999px;background:{{ r.kindBg }};color:{{ r.kindInk }};font-size:12px">{{ r.kind }}</span></td>
+                    <td style="padding:11px 14px;color:var(--ink);max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</td>
+                    <td style="padding:11px 14px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:{{ r.detailInk }};white-space:nowrap">{{ r.detail }}</td>
+                    <td style="padding:11px 14px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3);white-space:nowrap">{{ r.when }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;padding:34px 14px;text-align:center;font-size:13px;color:var(--ink-3)">Nada que revisar con este filtro.</p>
+            </sc-if>
+          </div>
+        </section>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
+          <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+            <a href="#" onClick="{{ c.open }}" style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;color:var(--ink)" style-hover="border-color:var(--line-2)">
+              <span style="display:flex;align-items:center;gap:8px;min-width:0">
+                <span style="width:6px;height:6px;border-radius:50%;background:{{ c.dot }};flex:none"></span>
+                <span style="font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+                <span style="margin-left:auto;flex:none;font-size:11px;color:var(--ink-3);white-space:nowrap">{{ c.role }}</span>
+              </span>
+              <span style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:11px;color:var(--ink-3)">Catálogo</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px">{{ c.total }}</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:11px;color:var(--ink-3)">Disponible</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px">{{ c.avail }}</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:11px;color:var(--ink-3)">Mediana</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.median }}</span>
+                </span>
+              </span>
+              <span style="font-size:11.5px;color:var(--ink-3)">{{ c.foot }}</span>
+            </a>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isStore }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+          <sc-for list="{{ storeStats }}" as="k" hint-placeholder-count="4">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)">
+              <p style="margin:0;font-size:11.5px;color:var(--ink-3)">{{ k.label }}</p>
+              <p style="margin:8px 0 0;font-family:'IBM Plex Mono',monospace;font-size:23px;font-weight:500;color:var(--ink);letter-spacing:-.02em">{{ k.value }}<span style="font-size:13px;color:var(--ink-3);margin-left:3px">{{ k.unit }}</span></p>
+            </div>
+          </sc-for>
+        </div>
+
+        <section style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+          <div style="display:flex;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line)">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+              <button type="button" onClick="{{ t.pick }}" style="height:28px;padding:0 12px;border-radius:999px;border:1px solid {{ t.border }};background:{{ t.bg }};color:{{ t.ink }};font-size:12.5px;cursor:pointer">{{ t.label }} <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.6">{{ t.n }}</span></button>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)">
+            <span style="font-size:11.5px;color:var(--ink-3);margin-right:4px">{{ subFilterLabel }}</span>
+            <sc-for list="{{ subFilters }}" as="f" hint-placeholder-count="6">
+              <button type="button" onClick="{{ f.pick }}" style="height:26px;padding:0 10px;border-radius:999px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.ink }};font-size:12px;cursor:pointer">{{ f.label }} <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;opacity:.6">{{ f.n }}</span></button>
+            </sc-for>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead>
+                <tr style="text-align:left;color:var(--ink-3)">
+                  <sc-for list="{{ storeHead }}" as="h" hint-placeholder-count="4">
+                    <th style="font-weight:500;font-size:11.5px;padding:9px 14px;border-bottom:1px solid var(--line);text-align:{{ h.align }}">{{ h.label }}</th>
+                  </sc-for>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ storeRows }}" as="r" hint-placeholder-count="8">
+                  <tr style="border-bottom:1px solid var(--line)" style-hover="background:var(--surface-2)">
+                    <td style="padding:11px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3);white-space:nowrap">{{ r.sku }}</td>
+                    <td style="padding:11px 14px;color:var(--ink);max-width:460px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</td>
+                    <td style="padding:11px 14px;white-space:nowrap"><span style="display:inline-block;padding:3px 9px;border-radius:999px;background:{{ r.tagBg }};color:{{ r.tagInk }};font-size:12px">{{ r.tag }}</span></td>
+                    <td style="padding:11px 14px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:{{ r.valueInk }};white-space:nowrap">{{ r.value }}</td>
+                    <td style="padding:11px 14px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3);white-space:nowrap">{{ r.when }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <sc-if value="{{ noStoreRows }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;padding:34px 14px;text-align:center;font-size:13px;color:var(--ink-3)">Sin resultados.</p>
+            </sc-if>
+          </div>
+        </section>
+      </sc-if>
+
+      <p style="margin:0;font-size:11.5px;color:var(--ink-3)">Lectura de MySQL al cargar. Sincronización automática cada día a las 03:00 (Madrid).</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const eur = v => v == null ? "—" : v.toLocaleString("es-ES", {minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always"}) + " €";
+const miles = v => v.toLocaleString("es-ES", {useGrouping: "always"});
+
+const STORES = [
+  {name:"Titanium Strength", slug:"titanium-strength", own:false, live:true, total:865, availPct:91.4, promoPct:12.8, median:329.0, max:9995.0, last:"04.09.2026 · 03:12"},
+  {name:"Fitness Tech ES", slug:"fitness-tech", own:true, live:true, total:1428, availPct:96.2, promoPct:18.4, median:189.9, max:7499.0, last:"04.09.2026 · 03:07"},
+  {name:"Fitness Tech FR", slug:"fitness-tech-fr", own:true, live:true, total:1194, availPct:95.1, promoPct:16.2, median:199.0, max:7499.0, last:"04.09.2026 · 03:09"},
+  {name:"Fitness Tech PT", slug:"fitness-tech-pt", own:true, live:false, total:983, availPct:93.7, promoPct:9.5, median:205.0, max:6890.0, last:"01.09.2026 · 03:08"}
+];
+
+const KIND = {
+  price_down: {label:"Bajada", bg:"var(--up-bg)", ink:"var(--up-ink)"},
+  price_up:   {label:"Subida", bg:"var(--down-bg)", ink:"var(--down-ink)"},
+  new:        {label:"Alta", bg:"var(--new-bg)", ink:"var(--new-ink)"},
+  removed:    {label:"Baja", bg:"var(--gone-bg)", ink:"var(--gone-ink)"},
+  stock:      {label:"Stock", bg:"var(--stock-bg)", ink:"var(--stock-ink)"}
+};
+
+const CHANGES = [
+  {store:"Titanium Strength", kind:"price_down", title:"Titanium Strength Elite Half Rack HD", detail:"1.499,00 € → 1.279,00 €", pct:-14.7, when:"04.09 · 03:12"},
+  {store:"Fitness Tech ES", kind:"new", title:"Rack de sentadillas FT Pro Series 2.0", detail:"1.190,00 €", when:"04.09 · 03:07"},
+  {store:"Titanium Strength", kind:"new", title:"Banco olímpico regulable Black Series", detail:"449,00 €", when:"04.09 · 03:12"},
+  {store:"Fitness Tech FR", kind:"price_up", title:"Tapis de course FT Runner 500", detail:"1.299,00 € → 1.399,00 €", pct:7.7, when:"04.09 · 03:09"},
+  {store:"Titanium Strength", kind:"stock", title:"Mancuernas hexagonales 2-30 kg (pack)", detail:"Agotado → Disponible", when:"04.09 · 03:12"},
+  {store:"Fitness Tech ES", kind:"price_down", title:"Bicicleta indoor FT Spin 700", detail:"899,00 € → 779,00 €", pct:-13.3, when:"04.09 · 03:07"},
+  {store:"Fitness Tech PT", kind:"removed", title:"Passadeira FT Walk 200", detail:"Visto 31.08.2026", when:"04.09 · 03:08"},
+  {store:"Titanium Strength", kind:"price_up", title:"Multiestación Genesis Series G3", detail:"2.790,00 € → 2.990,00 €", pct:7.2, when:"04.09 · 03:12"},
+  {store:"Fitness Tech FR", kind:"new", title:"Kit haltères FT Studio 20 kg", detail:"129,00 €", when:"04.09 · 03:09"},
+  {store:"Fitness Tech ES", kind:"stock", title:"Cinta de correr FT Marathon 900", detail:"Disponible → Agotado", when:"04.09 · 03:07"},
+  {store:"Titanium Strength", kind:"removed", title:"Banco plano TS Compact (2024)", detail:"Visto 02.09.2026", when:"04.09 · 03:12"},
+  {store:"Fitness Tech ES", kind:"price_down", title:"Suelo técnico premium 20 mm (m²)", detail:"39,90 € → 34,90 €", pct:-12.5, when:"04.09 · 03:07"}
+];
+
+const CATALOG = {
+  "titanium-strength": [
+    {sku:"TS-HR-HD", title:"Titanium Strength Elite Half Rack HD", price:1279.0, avail:true, when:"04.09.2026"},
+    {sku:"TS-BO-BS", title:"Banco olímpico regulable Black Series", price:449.0, avail:true, when:"04.09.2026"},
+    {sku:"TS-MH-30", title:"Mancuernas hexagonales 2-30 kg (pack)", price:1090.0, avail:true, when:"04.09.2026"},
+    {sku:"TS-G3", title:"Multiestación Genesis Series G3", price:2990.0, avail:true, when:"04.09.2026"},
+    {sku:"TS-LP-45", title:"Prensa de piernas 45º Elite", price:2450.0, avail:false, when:"04.09.2026"},
+    {sku:"TS-KB-24", title:"Kettlebell competición 24 kg", price:79.9, avail:true, when:"04.09.2026"},
+    {sku:"TS-BAR-OL", title:"Barra olímpica 20 kg Elite Series", price:229.0, avail:true, when:"04.09.2026"},
+    {sku:"TS-SM-01", title:"Máquina Smith Genesis Series", price:1890.0, avail:false, when:"04.09.2026"}
+  ],
+  "fitness-tech": [
+    {sku:"FT-RK-20", title:"Rack de sentadillas FT Pro Series 2.0", price:1190.0, avail:true, when:"04.09.2026"},
+    {sku:"FT-SP-700", title:"Bicicleta indoor FT Spin 700", price:779.0, avail:true, when:"04.09.2026"},
+    {sku:"FT-MR-900", title:"Cinta de correr FT Marathon 900", price:1899.0, avail:false, when:"04.09.2026"},
+    {sku:"FT-SU-20", title:"Suelo técnico premium 20 mm (m²)", price:34.9, avail:true, when:"04.09.2026"},
+    {sku:"FT-DB-40", title:"Mancuernas ajustables FT 2-40 kg", price:549.0, avail:true, when:"04.09.2026"},
+    {sku:"FT-KP-01", title:"Reformer Kalma Pilates Studio", price:2290.0, avail:true, when:"04.09.2026"},
+    {sku:"FT-RW-300", title:"Remo magnético FT Row 300", price:699.0, avail:true, when:"04.09.2026"},
+    {sku:"FT-BN-FL", title:"Banco plano FT Basic", price:129.0, avail:true, when:"04.09.2026"}
+  ],
+  "fitness-tech-fr": [
+    {sku:"FR-RN-500", title:"Tapis de course FT Runner 500", price:1399.0, avail:true, when:"04.09.2026"},
+    {sku:"FR-HT-20", title:"Kit haltères FT Studio 20 kg", price:129.0, avail:true, when:"04.09.2026"},
+    {sku:"FR-VE-200", title:"Vélo d'appartement FT City 200", price:459.0, avail:true, when:"04.09.2026"},
+    {sku:"FR-CA-01", title:"Cage à squat FT Pro", price:1290.0, avail:false, when:"04.09.2026"},
+    {sku:"FR-TP-15", title:"Sol technique 15 mm (m²)", price:29.9, avail:true, when:"04.09.2026"},
+    {sku:"FR-EL-400", title:"Vélo elliptique FT Glide 400", price:849.0, avail:true, when:"04.09.2026"}
+  ],
+  "fitness-tech-pt": [
+    {sku:"PT-WK-200", title:"Passadeira FT Walk 200", price:699.0, avail:false, when:"01.09.2026"},
+    {sku:"PT-HL-30", title:"Halteres hexagonais 30 kg (par)", price:189.0, avail:true, when:"01.09.2026"},
+    {sku:"PT-BC-500", title:"Bicicleta indoor FT Spin 500", price:649.0, avail:true, when:"01.09.2026"},
+    {sku:"PT-RK-10", title:"Rack de agachamento FT Home", price:890.0, avail:true, when:"01.09.2026"},
+    {sku:"PT-PS-01", title:"Reformer Kalma Pilates Home", price:1790.0, avail:true, when:"01.09.2026"}
+  ]
+};
+
+class Component extends DCLogic {
+  state = {view: "home", slug: null, filter: "", storeFilter: "", tab: "catalog", query: "", clock: "--:--", theme: "light"};
+
+  componentDidMount() {
+    const saved = localStorage.getItem("vig-theme");
+    const theme = saved === "dark" || saved === "light" ? saved : "light";
+    document.documentElement.dataset.theme = theme;
+    this.setState({theme});
+    const tick = () => this.setState({clock: new Date().toLocaleTimeString("es-ES", {timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit"})});
+    tick();
+    this._t = setInterval(tick, 20000);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  toggleTheme = () => {
+    const theme = this.state.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("vig-theme", theme);
+    this.setState({theme});
+  };
+
+  pill(active) {
+    return active
+      ? {bg: "var(--accent)", ink: "#fff", border: "var(--accent)"}
+      : {bg: "transparent", ink: "var(--ink-2)", border: "var(--line-2)"};
+  }
+
+  renderVals() {
+    const {view, slug, filter, storeFilter, tab, query} = this.state;
+    const q = query.trim().toLowerCase();
+    const store = STORES.find(s => s.slug === slug);
+    const isHome = view === "home";
+
+    const matches = r => !q || (r.title + " " + (r.sku || "")).toLowerCase().includes(q);
+    const inStore = r => !storeFilter || r.store === storeFilter;
+    const scoped = CHANGES.filter(inStore);
+    const visible = scoped.filter(r => (!filter || r.kind === filter || (filter === "price" && r.kind.startsWith("price"))) && matches(r));
+    const pickedStores = storeFilter ? STORES.filter(s => s.name === storeFilter) : STORES;
+
+    const counts = {
+      "": scoped.length,
+      price: scoped.filter(r => r.kind.startsWith("price")).length,
+      new: scoped.filter(r => r.kind === "new").length,
+      stock: scoped.filter(r => r.kind === "stock").length,
+      removed: scoped.filter(r => r.kind === "removed").length
+    };
+    const filters = [["", "Todos"], ["price", "Precios"], ["new", "Altas"], ["stock", "Stock"], ["removed", "Bajas"]].map(([key, label]) => ({
+      label, n: counts[key], ...this.pill(filter === key),
+      pick: e => { e.preventDefault(); this.setState({filter: key}); }
+    }));
+
+    const products = pickedStores.reduce((a, s) => a + s.total, 0);
+    const availPct = pickedStores.reduce((a, s) => a + s.availPct * s.total, 0) / products;
+    const promoPct = pickedStores.reduce((a, s) => a + s.promoPct * s.total, 0) / products;
+
+    const navItems = STORES.map(s => ({
+      own: s.own, name: s.name, total: miles(s.total),
+      open: e => { e.preventDefault(); this.setState({view: "store", slug: s.slug, tab: "catalog", sub: ""}); },
+      dot: s.live ? (s.own ? "#5fe0e6" : "#f19b93") : "rgba(255,255,255,.28)",
+      ink: slug === s.slug && view === "store" ? "#fff" : "rgba(255,255,255,.72)",
+      bg: s.own
+        ? (slug === s.slug && view === "store" ? "rgba(0,167,175,.46)" : "rgba(0,167,175,.22)")
+        : (slug === s.slug && view === "store" ? "rgba(212,63,53,.42)" : "rgba(212,63,53,.20)")
+    }));
+
+    const openStore = s => e => { e.preventDefault(); this.setState({view: "store", slug: s.slug, tab: "catalog", sub: ""}); };
+
+    const sub = this.state.sub || "";
+    const showCatalog = tab === "catalog";
+    const allCatalog = store ? CATALOG[store.slug].filter(matches) : [];
+    const allChanges = store ? CHANGES.filter(r => r.store === store.name && matches(r)) : [];
+    const catalog = allCatalog.filter(p => !sub || (sub === "avail" ? p.avail : !p.avail));
+    const storeChanges = allChanges.filter(r => !sub || r.kind === sub || (sub === "price" && r.kind.startsWith("price")));
+
+    const subSpecs = showCatalog
+      ? [["", "Todos", allCatalog.length], ["avail", "Disponible", allCatalog.filter(p => p.avail).length], ["out", "Agotado", allCatalog.filter(p => !p.avail).length]]
+      : [
+          ["", "Todos", allChanges.length],
+          ["new", "Alta", allChanges.filter(r => r.kind === "new").length],
+          ["price", "Precio", allChanges.filter(r => r.kind.startsWith("price")).length],
+          ["stock", "Stock", allChanges.filter(r => r.kind === "stock").length],
+          ["removed", "Baja", allChanges.filter(r => r.kind === "removed").length]
+        ];
+    const subFilters = subSpecs.map(([key, label, n]) => ({
+      label, n, ...this.pill(sub === key),
+      pick: e => { e.preventDefault(); this.setState({sub: key}); }
+    }));
+
+    return {
+      title: isHome ? "Cambios" : store.name,
+      subtitle: isHome
+        ? (storeFilter ? `Últimas 24 horas · ${storeFilter}` : `Últimas 24 horas · ${STORES.length} escaparates`)
+        : `Última lectura ${store.last}`,
+      storeFilters: [{name: "", label: "Todas", dot: "var(--ink-3)"}].concat(
+        STORES.map(s => ({name: s.name, label: s.name, dot: s.live ? "var(--accent)" : "var(--ink-3)"}))
+      ).map(s => ({
+        label: s.label, dot: storeFilter === s.name ? "rgba(255,255,255,.85)" : s.dot, ...this.pill(storeFilter === s.name),
+        pick: e => { e.preventDefault(); this.setState({storeFilter: s.name}); }
+      })),
+      isHome, isStore: !isHome,
+      clock: this.state.clock,
+      query,
+      onSearch: e => this.setState({query: e.target.value}),
+      toggleTheme: this.toggleTheme,
+      sync: e => e.preventDefault(),
+      goHome: e => { e.preventDefault(); this.setState({view: "home"}); },
+      homeInk: isHome ? "#fff" : "rgba(255,255,255,.62)",
+      homeBg: isHome ? "rgba(255,255,255,.10)" : "transparent",
+      changeCount: CHANGES.length,
+
+      myStores: navItems.filter(s => s.own),
+      rivalStores: navItems.filter(s => !s.own),
+      navStores: STORES.map(s => ({
+        name: s.name, total: miles(s.total), open: openStore(s),
+        dot: s.live ? (s.own ? "#5fe0e6" : "#f19b93") : "rgba(255,255,255,.28)",
+        ink: slug === s.slug && !isHome ? "#fff" : "rgba(255,255,255,.72)",
+        bg: s.own
+          ? (slug === s.slug && !isHome ? "rgba(0,167,175,.46)" : "rgba(0,167,175,.22)")
+          : (slug === s.slug && !isHome ? "rgba(212,63,53,.42)" : "rgba(212,63,53,.20)")
+      })),
+
+      stats: [
+        {label: "Productos vigilados", value: miles(products), unit: ""},
+        {label: "Tiendas en línea", value: pickedStores.filter(s => s.live).length, unit: `/ ${pickedStores.length}`},
+        {label: "Disponibilidad", value: availPct.toFixed(1).replace(".", ","), unit: "%"},
+        {label: "Con precio rebajado", value: promoPct.toFixed(1).replace(".", ","), unit: "%"},
+        {label: "Cambios 24 h", value: scoped.length, unit: ""}
+      ],
+
+      filters,
+      noRows: visible.length === 0,
+      rows: visible.map(r => ({
+        store: r.store, title: r.title, when: r.when, detail: r.detail,
+        kind: KIND[r.kind].label, kindBg: KIND[r.kind].bg, kindInk: KIND[r.kind].ink,
+        detailInk: r.kind === "price_down" ? "var(--up-ink)" : r.kind === "price_up" ? "var(--down-ink)" : "var(--ink-2)"
+      })),
+
+      cards: pickedStores.map(s => ({
+        name: s.name, open: openStore(s),
+        role: s.own ? "Tienda propia" : "Competencia",
+        dot: s.live ? "var(--accent)" : "var(--ink-3)",
+        total: miles(s.total),
+        avail: s.availPct.toFixed(1).replace(".", ",") + " %",
+        median: eur(s.median),
+        foot: s.live ? `Leída ${s.last}` : `Sin lectura reciente · ${s.last}`
+      })),
+
+      storeStats: store ? [
+        {label: "En catálogo", value: miles(store.total), unit: ""},
+        {label: "Disponible", value: store.availPct.toFixed(1).replace(".", ","), unit: "%"},
+        {label: "Precio mediano", value: eur(store.median), unit: ""},
+        {label: "Precio más alto", value: eur(store.max), unit: ""}
+      ] : [],
+
+      tabs: [["catalog", "Catálogo", allCatalog.length], ["changes", "Cambios 24 h", allChanges.length]].map(([key, label, n]) => ({
+        label, n, ...this.pill(tab === key),
+        pick: e => { e.preventDefault(); this.setState({tab: key, sub: ""}); }
+      })),
+      subFilterLabel: showCatalog ? "Estado" : "Tipo",
+      subFilters,
+
+      storeHead: showCatalog
+        ? [{label: "SKU", align: "left"}, {label: "Producto", align: "left"}, {label: "Estado", align: "left"}, {label: "Precio", align: "right"}, {label: "Última lectura", align: "right"}]
+        : [{label: "SKU", align: "left"}, {label: "Producto", align: "left"}, {label: "Cambio", align: "left"}, {label: "Detalle", align: "right"}, {label: "Detectado", align: "right"}],
+
+      noStoreRows: (showCatalog ? catalog : storeChanges).length === 0,
+      storeRows: showCatalog
+        ? catalog.map(p => ({
+            sku: p.sku, title: p.title, when: p.when,
+            tag: p.avail ? "Disponible" : "Agotado",
+            tagBg: p.avail ? "var(--down-bg)" : "var(--up-bg)",
+            tagInk: p.avail ? "var(--down-ink)" : "var(--up-ink)",
+            value: eur(p.price), valueInk: "var(--ink)"
+          }))
+        : storeChanges.map(r => ({
+            sku: "—", title: r.title, when: r.when,
+            tag: KIND[r.kind].label, tagBg: KIND[r.kind].bg, tagInk: KIND[r.kind].ink,
+            value: r.detail,
+            valueInk: r.kind === "price_down" ? "var(--up-ink)" : r.kind === "price_up" ? "var(--down-ink)" : "var(--ink-2)"
+          }))
+    };
+  }
+}
+</script>
+</body>
+</html>

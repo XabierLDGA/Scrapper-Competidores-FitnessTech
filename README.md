@@ -94,19 +94,22 @@ Abre http://localhost:5000 en el navegador. Es un servidor de desarrollo
 Flask (`debug=True`) pensado solo para uso local, no para producción — lee
 directamente de MySQL en cada recarga de pagina, no tiene autenticacion.
 
-El panel es una consola de una sola pagina: el menu lateral conmuta entre
-la **vista general** (telemetria agregada y el mapa de posicionamiento por
-precio), una **vista por objetivo** con sus cinco pestanas de siempre, y
-los **registros**, que cruzan los cuatro escaparates para ver todos los
-cambios de un tipo juntos. La vista viaja en el hash de la URL
-(`#objetivo/titanium-strength`), asi que recargar no te devuelve al
-principio. `/` enfoca el buscador y `Esc` lo limpia.
+El panel es una pagina unica con dos vistas. La de **cambios** es la
+portada: todo lo que se ha movido en las cuatro tiendas en las ultimas 24
+horas —altas, bajas, subidas y bajadas de precio y entradas y salidas de
+stock— en una sola bandeja ordenada de mas reciente a mas antiguo, con
+filtros por tienda y por tipo. La vista **por tienda** tiene dos pestanas,
+catalogo y cambios de 24 horas, con sus propios subfiltros.
 
-Todo se renderiza en el servidor: el JavaScript solo decide que vista se
-ve, filtra lo ya pintado y anima las lecturas. Los agregados
-(disponibilidad, promociones, mediana de precio, tramos del mapa de calor)
-viven en `src/metrics.py` como funciones puras, cubiertas por
-`tests/test_metrics.py`.
+La vista viaja en el hash de la URL (`#tienda/titanium-strength`), asi que
+recargar no te devuelve al principio. `/` enfoca el buscador y `Esc` lo
+limpia. El boton de la esquina inferior izquierda alterna entre tema claro
+y oscuro, y la eleccion se recuerda en el navegador.
+
+Todo se renderiza en el servidor: el JavaScript solo decide que vista se ve
+y filtra lo ya pintado. Los agregados (disponibilidad, promociones, mediana
+de precio y el feed de cambios) viven en `src/metrics.py` como funciones
+puras, cubiertas por `tests/test_metrics.py`.
 
 ### 7. Tests
 
@@ -205,8 +208,8 @@ docker compose down -v    # borra tambien la base de datos
   el estado real de la BD (`get_new_products` / `get_unnotified_events`),
   no listas en memoria — asi el digest es correcto aunque el crawl falle a
   mitad para algun competidor.
-- `dashboard.py` + `templates/dashboard.html` + `static/css/console.css` +
-  `static/js/console.js` — Panel web de solo lectura sobre MySQL. `dashboard.py`
+- `dashboard.py` + `templates/dashboard.html` + `static/css/panel.css` +
+  `static/js/panel.js` — Panel web de solo lectura sobre MySQL. `dashboard.py`
   es una capa fina de Flask: consulta, delega el calculo en `src/metrics.py`
   y renderiza. Sin autenticacion propia (en el VPS la pone Traefik). Local:
   `python dashboard.py` (servidor de desarrollo Flask, `debug=True`).
@@ -216,9 +219,10 @@ docker compose down -v    # borra tambien la base de datos
   > arrancar, asi que los cambios en `dashboard.html` no se ven hasta
   > reiniciar el servidor (los de CSS/JS si, son ficheros estaticos).
 - `src/metrics.py` — Agregados derivados del panel (disponibilidad, % con
-  precio rebajado, mediana de precio, tramos del mapa de calor, codigos de
-  objetivo). Funciones puras sobre las filas que devuelve `Database`: ni
-  BD ni Flask, para que el calculo quede cubierto por tests.
+  precio rebajado, mediana de precio) y `build_change_feed`, que aplana los
+  cuatro tipos de evento de las cuatro tiendas en la bandeja unica de la
+  portada. Funciones puras sobre las filas que devuelve `Database`: ni BD
+  ni Flask, para que el calculo quede cubierto por tests.
 - `scheduler.py` — Ejecuta el crawl diario dentro del contenedor `crawler`
   (bucle Python que calcula cuanto falta para las 03:00 de Europe/Madrid y
   espera, en vez de un demonio cron dentro de la imagen). La zona horaria,

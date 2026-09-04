@@ -2,6 +2,8 @@ services:
   dashboard:
     build: .
     restart: unless-stopped
+    # Techo de memoria (pico observado: ~44 MB).
+    mem_limit: 256m
     command: waitress-serve --host=0.0.0.0 --port=5000 dashboard:app
     env_file: .env
     environment:
@@ -24,6 +26,10 @@ services:
   crawler:
     build: .
     restart: unless-stopped
+    # Techo de memoria generoso: el pico en reposo es de ~65 MB, pero
+    # este servicio usa Playwright y al lanzar Chromium para scrapear
+    # puede pedir varios cientos de MB de golpe.
+    mem_limit: 1024m
     command: python scheduler.py
     env_file: .env
     environment:

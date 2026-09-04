@@ -9,9 +9,7 @@ Ninguna cifra que se muestra en el panel se inventa aqui: todas salen del
 catalogo real o de los eventos de las ultimas 24 horas.
 """
 
-import math
 import unicodedata
-from bisect import bisect_right
 from datetime import date, datetime, timedelta
 from statistics import median
 
@@ -19,44 +17,10 @@ from statistics import median
 # la competencia, pero no son competencia: el panel las separa.
 OWN_STORES = {"Fitness Tech", "Fitness Tech FR", "Fitness Tech PT"}
 
-COMPETITOR_LOGOS = {
-    "Fitness Tech": "fitnesstech-es.png",
-    "Fitness Tech FR": "fitnesstech-fr.png",
-    "Fitness Tech PT": "fitnesstech-pt.png",
-    "Titanium Strength": "titanium-strength.png",
-}
-
 # Un objetivo se considera "en linea" si se ha crawleado en las ultimas 48h:
 # el crawler corre a diario, asi que dos vueltas sin datos es una senal real
 # de que algo va mal, no un margen arbitrario.
 LIVE_WINDOW = timedelta(hours=48)
-
-# Tramos de precio del mapa de posicionamiento. Los cortes estan elegidos
-# sobre el catalogo real: separan accesorio (<50) de material de sala
-# (100-500) y de maquina grande (1k+), que es donde esta la frontera entre
-# el surtido propio y el de Titanium Strength.
-PRICE_BANDS = [
-    (0, 50, "< 50"),
-    (50, 100, "50-100"),
-    (100, 250, "100-250"),
-    (250, 500, "250-500"),
-    (500, 1000, "500-1k"),
-    (1000, 2500, "1k-2,5k"),
-    (2500, None, "2,5k +"),
-]
-_BAND_EDGES = [low for low, _, _ in PRICE_BANDS]
-
-# Pasos de la rampa ambar del mapa de calor (0 = tramo vacio, sin pintar).
-HEAT_LEVELS = 6
-
-# Exponente de la escala de color del mapa. Con reparto lineal casi todas
-# las celdas caian en los pasos centrales y el mapa se leia como un tablero
-# encendido, sin decir nada. Por encima de 1 la escala empuja las cuotas
-# medias hacia abajo, y solo la concentracion real destaca -que es
-# justamente lo que hay que ver: donde amontona su catalogo cada tienda.
-# El valor exacto de cada celda no se pierde: va impreso en la propia celda
-# y en la lectura del cursor.
-HEAT_GAMMA = 1.5
 
 
 def slugify(value: str) -> str:
@@ -64,55 +28,6 @@ def slugify(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value or "")
     ascii_only = normalized.encode("ascii", "ignore").decode("ascii").lower()
     return "-".join(part for part in ascii_only.replace("/", " ").split() if part)
-
-
-def target_code(name: str, country: str | None) -> str:
-    """Codigo corto de un objetivo, del estilo `TS·ES`.
-
-    Se deriva del nombre y el pais reales, sin inventar nomenclatura: las
-    iniciales de las palabras del nombre mas el pais. Si el nombre ya
-    termina en el pais ("Fitness Tech FR") no se cuenta dos veces.
-    """
-    words = (name or "").split()
-    if country and words and words[-1].upper() == country.upper():
-        words = words[:-1]
-
-    if not words:
-        initials = "?"
-    elif len(words) == 1:
-        initials = words[0][:2].upper()
-    else:
-        initials = "".join(word[0] for word in words[:3]).upper()
-
-    return f"{initials}·{country.upper()}" if country else initials
-
-
-def price_histogram(products: list[dict]) -> list[dict]:
-    """Reparto del catalogo por tramo de precio, en unidades y en cuota.
-
-    La cuota se calcula sobre los productos *con precio* del propio
-    objetivo, no sobre el total del panel: asi dos tiendas de tamano
-    distinto son comparables fila con fila.
-    """
-    prices = [p["price"] for p in products if p.get("price") is not None]
-    counts = [0] * len(PRICE_BANDS)
-    for price in prices:
-        # max(0, ...) por si llegase un precio negativo: sin el, bisect da
-        # indice -1 y el producto acabaria contado en el tramo mas caro.
-        counts[max(0, bisect_right(_BAND_EDGES, price) - 1)] += 1
-
-    total = len(prices)
-    return [
-        {
-            "label": label,
-            "low": low,
-            "high": high,
-            "count": count,
-            "share": count / total if total else 0,
-            "level": 0,
-        }
-        for (low, high, label), count in zip(PRICE_BANDS, counts)
-    ]
 
 
 def target_metrics(catalog: list[dict]) -> dict:
@@ -154,26 +69,6 @@ def _as_datetime(value) -> datetime | None:
     return None
 
 
-def _apply_heat_levels(targets: list[dict]) -> None:
-    """Escala los tramos de todos los objetivos contra la cuota mas alta del
-    panel, para que una celda oscura signifique lo mismo en todas las filas.
-
-    Normalizar fila a fila haria que el tramo mayor de cada tienda saliese
-    siempre al maximo, y el mapa dejaria de comparar nada.
-    """
-    shares = [band["share"] for t in targets for band in t["histogram"]]
-    top = max(shares, default=0)
-    for target in targets:
-        for band in target["histogram"]:
-            if band["share"] <= 0 or top <= 0:
-                band["level"] = 0
-            else:
-                intensidad = (band["share"] / top) ** HEAT_GAMMA
-                band["level"] = min(
-                    HEAT_LEVELS, max(1, math.ceil(intensidad * HEAT_LEVELS))
-                )
-
-
 def build_targets(competitors: list[dict], new_products: list[dict],
                   price_events: list[dict], availability_events: list[dict],
                   removed_products: list[dict], catalog: list[dict],
@@ -192,7 +87,6 @@ def build_targets(competitors: list[dict], new_products: list[dict],
         targets[name] = {
             **competitor,
             "slug": slugify(name),
-            "code": target_code(name, competitor.get("country")),
             "is_own_store": name in OWN_STORES,
             # `last_crawled` se deja como venga de la BD para pintarlo; las
             # comparaciones usan la version normalizada, porque MySQL puede
@@ -200,7 +94,6 @@ def build_targets(competitors: list[dict], new_products: list[dict],
             # en un max() revienta la pagina entera.
             "last_crawled_at": last_crawled,
             "is_live": bool(last_crawled and now - last_crawled <= LIVE_WINDOW),
-            "logo": COMPETITOR_LOGOS.get(name),
             "new_products": [],
             "price_events": [],
             "availability_events": [],
@@ -223,13 +116,11 @@ def build_targets(competitors: list[dict], new_products: list[dict],
     ordered = sorted(targets.values(), key=lambda t: (t["is_own_store"], t["name"]))
     for target in ordered:
         target["metrics"] = target_metrics(target["catalog"])
-        target["histogram"] = price_histogram(target["catalog"])
         target["event_count"] = sum(
             len(target[key])
             for key in ("new_products", "price_events",
                         "availability_events", "removed_products")
         )
-    _apply_heat_levels(ordered)
     return ordered
 
 
@@ -246,14 +137,104 @@ def global_metrics(targets: list[dict]) -> dict:
         "availability_pct": available / products * 100 if products else 0,
         "promo_pct": promo / products * 100 if products else 0,
         "events": sum(t["event_count"] for t in targets),
-        # Cuota mas alta del mapa de calor: es contra esta contra la que se
-        # escalan las celdas, asi que la leyenda tiene que poder citarla.
-        "top_share": max(
-            (band["share"] for t in targets for band in t["histogram"]),
-            default=0,
-        ),
         "last_crawled": max(
             (t["last_crawled_at"] for t in targets if t.get("last_crawled_at")),
             default=None,
         ),
     }
+
+
+def _bool_o_none(value) -> bool | None:
+    """MySQL devuelve 1/0 en unas filas y True/False en otras. La plantilla
+    no deberia tener que distinguirlas, asi que el feed normaliza aqui."""
+    return None if value is None else bool(value)
+
+
+def build_change_feed(targets: list[dict]) -> list[dict]:
+    """Aplana los cuatro tipos de evento de todos los objetivos en una sola
+    lista, ordenada de mas reciente a mas antiguo.
+
+    Es lo que alimenta la bandeja de la pantalla principal: la pregunta que
+    se le hace al panel cada manana es "que se movio anoche", y esa
+    respuesta no deberia estar repartida en cuatro tablas.
+
+    No compone texto: guarda los valores y deja que la plantilla los pinte
+    con los filtros de formato, para que el formato espanol viva en un solo
+    sitio.
+    """
+    feed = []
+
+    for target in targets:
+        comun = {"store": target["name"],
+                 "is_own_store": target["is_own_store"]}
+
+        for event in target["price_events"]:
+            feed.append({
+                **comun,
+                "kind": "price_down" if event.get("event_type") == "decrease" else "price_up",
+                "sku": event.get("sku"),
+                "title": event.get("title"),
+                "url": event.get("url"),
+                "when": _as_datetime(event.get("detected_at")),
+                "old_price": event.get("old_price"),
+                "new_price": event.get("new_price"),
+                "pct": event.get("percent_change"),
+                "was_available": None,
+                "now_available": None,
+                "last_seen": None,
+            })
+
+        for product in target["new_products"]:
+            feed.append({
+                **comun,
+                "kind": "new",
+                "sku": product.get("sku"),
+                "title": product.get("title"),
+                "url": product.get("url"),
+                "when": _as_datetime(product.get("first_seen")),
+                # Sin precio anterior: la plantilla pinta el precio suelto.
+                "old_price": None,
+                "new_price": product.get("price"),
+                "pct": None,
+                "was_available": None,
+                "now_available": None,
+                "last_seen": None,
+            })
+
+        for event in target["availability_events"]:
+            feed.append({
+                **comun,
+                "kind": "stock",
+                "sku": event.get("sku"),
+                "title": event.get("title"),
+                "url": event.get("url"),
+                "when": _as_datetime(event.get("detected_at")),
+                "old_price": None,
+                "new_price": None,
+                "pct": None,
+                "was_available": _bool_o_none(event.get("was_available")),
+                "now_available": _bool_o_none(event.get("now_available")),
+                "last_seen": None,
+            })
+
+        for product in target["removed_products"]:
+            feed.append({
+                **comun,
+                "kind": "removed",
+                "sku": product.get("sku"),
+                "title": product.get("title"),
+                "url": product.get("url"),
+                "when": _as_datetime(product.get("removed_at")),
+                "old_price": None,
+                "new_price": None,
+                "pct": None,
+                "was_available": None,
+                "now_available": None,
+                "last_seen": product.get("last_seen"),
+            })
+
+    # datetime.min para las fechas ilegibles: ordenar con None dentro de la
+    # lista lanza TypeError y se lleva por delante la pagina entera. Van al
+    # final, que es donde molestan menos.
+    feed.sort(key=lambda c: c["when"] or datetime.min, reverse=True)
+    return feed

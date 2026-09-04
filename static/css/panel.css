@@ -1,0 +1,724 @@
+/* ==========================================================================
+   Panel de vigilancia de mercado — FitnessTech
+   --------------------------------------------------------------------------
+   Dos pantallas: la bandeja de cambios de las ultimas 24 horas y la vista
+   por tienda. Los colores salen del rediseno hecho en Claude Design; el
+   artboard original esta en
+   docs/superpowers/specs/2026-09-04-panel-redesign-artboard.html.
+
+   Indice
+     1  Tokens y base
+     2  Estructura
+     3  Barra lateral
+     4  Cabecera
+     5  Avisos
+     6  Cifras
+     7  Pastillas y filtros
+     8  Bloque y tablas
+     9  Tarjetas de tienda
+    10  Pantalla estrecha
+    11  Utilidades
+   ========================================================================== */
+
+/* ---------- 1  Tokens y base --------------------------------------------- */
+
+:root {
+  --bg: #f4f6f6;
+  --surface: #ffffff;
+  --surface-2: #fafbfb;
+  --ink: #0c1112;
+  --ink-2: #59666b;
+  --ink-3: #8e9a9e;
+  --line: #e6eaeb;
+  --line-2: #d7dddf;
+  --accent: #00a7af;
+  --accent-ink: #00666b;
+  --accent-wash: rgba(0, 167, 175, 0.1);
+
+  /* Ojo con estos dos nombres: --up-* es rojo y viste las BAJADAS de
+     precio, --down-* es verde y viste las SUBIDAS. Nombran la direccion del
+     semaforo comercial (que un rival baje es mala noticia), no la del
+     precio. Viene asi del artboard. */
+  --up-bg: #fdecec;
+  --up-ink: #b3261e;
+  --down-bg: #e7f6ee;
+  --down-ink: #127a4a;
+  --new-bg: #eaf1fe;
+  --new-ink: #2b4ec2;
+  --gone-bg: #f2f0ee;
+  --gone-ink: #6b6259;
+  --stock-bg: #fdf4e3;
+  --stock-ink: #8d6100;
+
+  --shadow: 0 1px 2px rgba(12, 17, 18, 0.05);
+  --rail-w: 246px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1215;
+  --surface: #151b1f;
+  --surface-2: #1b2226;
+  --ink: #e4eaed;
+  --ink-2: #9aa6ac;
+  --ink-3: #77848a;
+  --line: #232b30;
+  --line-2: #2c353a;
+  --accent: #00c2cb;
+  --accent-ink: #7fe4e9;
+  --accent-wash: rgba(0, 167, 175, 0.16);
+
+  --up-bg: rgba(226, 90, 80, 0.16);
+  --up-ink: #f19b93;
+  --down-bg: rgba(63, 190, 114, 0.16);
+  --down-ink: #6fd39a;
+  --new-bg: rgba(94, 132, 240, 0.16);
+  --new-ink: #9db2f5;
+  --gone-bg: rgba(150, 140, 130, 0.16);
+  --gone-ink: #b6ada4;
+  --stock-bg: rgba(214, 158, 46, 0.16);
+  --stock-ink: #e0bc74;
+
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-ink); text-decoration: none; }
+a:hover { color: var(--accent); }
+input, button { font: inherit; }
+::placeholder { color: var(--ink-3); }
+
+/* ---------- 2  Estructura ------------------------------------------------ */
+
+.panel {
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  min-height: 100vh;
+}
+
+.stage {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewport {
+  padding: 22px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.view { display: none; }
+.view.is-on { display: flex; flex-direction: column; gap: 22px; }
+.view:focus { outline: none; }
+
+.origin {
+  margin: 0;
+  font-size: 0.719rem;
+  color: var(--ink-3);
+}
+
+/* El scrim solo entra en juego con la barra lateral desplegada en movil. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.24s ease, visibility 0.24s ease;
+}
+
+/* ---------- 3  Barra lateral --------------------------------------------- */
+
+/* Negro fijo, no un token: la barra es negra en los dos temas, igual que la
+   cabecera de fitnesstech.es. */
+.rail {
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.rail__logo {
+  height: 26px;
+  width: auto;
+  margin: 2px 6px 0;
+  align-self: flex-start;
+}
+
+.rail__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0 10px;
+  height: 36px;
+  flex: none;
+}
+
+.rail__search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  color: #fff;
+  font-size: 0.813rem;
+}
+
+.rail__search input::placeholder { color: rgba(255, 255, 255, 0.42); }
+
+.rail__nav { display: flex; flex-direction: column; gap: 2px; }
+
+.rail__section {
+  margin: 18px 0 6px 8px;
+  font-family: Archivo, sans-serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+.rail__section:first-child { margin-top: 0; }
+
+.navitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 0.844rem;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.navitem:hover { color: #fff; }
+.navitem.is-active { color: #fff; }
+
+.navitem__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navitem__count {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.688rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.navitem__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.navitem--own { background: rgba(0, 167, 175, 0.22); }
+.navitem--own.is-active { background: rgba(0, 167, 175, 0.46); }
+.navitem--own .navitem__dot.is-live { background: #5fe0e6; }
+
+.navitem--rival { background: rgba(212, 63, 53, 0.2); }
+.navitem--rival.is-active { background: rgba(212, 63, 53, 0.42); }
+.navitem--rival .navitem__dot.is-live { background: #f19b93; }
+.navitem--rival .navitem__count { color: rgba(255, 255, 255, 0.45); }
+
+.navitem--pronto { color: rgba(255, 255, 255, 0.32); cursor: default; }
+.navitem--pronto:hover { color: rgba(255, 255, 255, 0.32); }
+
+/* Es el unico rotulo largo del menu y no tiene destino al que llevar: mejor
+   que envuelva a que se corte en "Comparativa Tit...". */
+.navitem--pronto .navitem__text { white-space: normal; }
+
+.pill-pronto {
+  font-size: 0.594rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+.rail__foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.rail__clock {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.688rem;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.rail__theme {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.rail__theme:hover { color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+
+/* ---------- 4  Cabecera -------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.topbar__title {
+  margin: 0;
+  font-family: Archivo, sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.188rem;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.topbar__sub {
+  font-size: 0.813rem;
+  color: var(--ink-3);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar form { margin-left: auto; }
+
+.topbar__menu {
+  display: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-2);
+  background: none;
+  border-radius: 9px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.btn-sync {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.813rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.btn-sync:hover { filter: brightness(1.07); }
+
+/* ---------- 5  Avisos ---------------------------------------------------- */
+
+.avisos { display: flex; flex-direction: column; gap: 8px; }
+
+.aviso {
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.813rem;
+}
+.aviso--success { background: var(--down-bg); color: var(--down-ink); }
+.aviso--error { background: var(--up-bg); color: var(--up-ink); }
+
+/* ---------- 6  Cifras ---------------------------------------------------- */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 12px;
+}
+
+.cifra {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.cifra__rotulo {
+  margin: 0;
+  font-size: 0.719rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+
+.cifra__valor {
+  margin: 8px 0 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.438rem;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.cifra__unidad {
+  font-size: 0.813rem;
+  color: var(--ink-3);
+  margin-left: 3px;
+}
+
+/* ---------- 7  Pastillas y filtros --------------------------------------- */
+
+.filtros-tienda {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filtros__rotulo {
+  font-size: 0.719rem;
+  color: var(--ink-3);
+  margin-right: 4px;
+}
+
+.pastilla {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 0.781rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.pastilla:hover { color: var(--ink); border-color: var(--ink-3); }
+
+.pastilla.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.pastilla.is-active:hover { color: #fff; border-color: var(--accent); }
+
+.pastilla small {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.688rem;
+  opacity: 0.6;
+}
+
+.pastilla--sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+}
+.pastilla--sm small { font-size: 0.656rem; }
+
+.pastilla__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  flex: none;
+}
+.pastilla__dot.is-live { background: var(--accent); }
+.pastilla.is-active .pastilla__dot { background: rgba(255, 255, 255, 0.85); }
+
+.subfiltros {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+/* ---------- 8  Bloque y tablas ------------------------------------------- */
+
+.bloque {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.bloque__filtros {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* La tabla hace scroll dentro de su caja: la pagina nunca se desplaza en
+   horizontal, por estrecha que sea la ventana. */
+.tablawrap { overflow-x: auto; }
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.813rem;
+}
+
+.tabla th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.719rem;
+  color: var(--ink-3);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.tabla tbody tr:last-child td { border-bottom: 0; }
+.tabla tbody tr:hover { background: var(--surface-2); }
+
+.t-num { text-align: right; }
+
+.t-sku {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.t-nombre {
+  color: var(--ink);
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El enlace hereda el color del texto: si no, la tabla entera se lee como
+   una lista de enlaces y no se distingue nada. */
+.t-nombre a { color: inherit; }
+.t-nombre a:hover { color: var(--accent); text-decoration: underline; }
+
+.t-detalle {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.781rem;
+  color: var(--ink-2);
+}
+.t-detalle--up { color: var(--up-ink); }
+.t-detalle--down { color: var(--down-ink); }
+
+.t-detalle .delta { font-weight: 500; margin-left: 4px; }
+.flecha { opacity: 0.55; margin: 0 2px; }
+
+.t-cuando {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.chip,
+.pildora {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.chip { background: var(--accent-wash); color: var(--accent-ink); }
+
+.pildora--up { background: var(--up-bg); color: var(--up-ink); }
+.pildora--down { background: var(--down-bg); color: var(--down-ink); }
+.pildora--new { background: var(--new-bg); color: var(--new-ink); }
+.pildora--gone { background: var(--gone-bg); color: var(--gone-ink); }
+.pildora--stock { background: var(--stock-bg); color: var(--stock-ink); }
+
+.vacio {
+  display: none;
+  margin: 0;
+  padding: 34px 14px;
+  text-align: center;
+  font-size: 0.813rem;
+  color: var(--ink-3);
+}
+.vacio.is-on { display: block; }
+
+/* ---------- 9  Tarjetas de tienda ---------------------------------------- */
+
+/* 270px y no los 250 del artboard, y un punto menos de cuerpo en los
+   valores: la mediana de ejemplo del diseno era "329,00 EUR", pero el
+   catalogo real llega a "1.305,00 EUR" y con tres columnas dentro de 250px
+   se cortaba en "1.305,0...". Medido: 90px de texto en 71px de hueco. */
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 12px;
+}
+
+.tarjeta {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 15px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+.tarjeta:hover { border-color: var(--line-2); color: var(--ink); }
+
+.tarjeta__cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tarjeta__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  flex: none;
+}
+.tarjeta__dot.is-live { background: var(--accent); }
+
+.tarjeta__nombre {
+  font-weight: 600;
+  font-size: 0.844rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tarjeta__rol {
+  margin-left: auto;
+  flex: none;
+  font-size: 0.688rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.tarjeta__cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tarjeta__cifras span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tarjeta__cifras small { font-size: 0.688rem; color: var(--ink-3); }
+
+.tarjeta__cifras b {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tarjeta__pie { font-size: 0.719rem; color: var(--ink-3); }
+
+/* ---------- 10  Pantalla estrecha ---------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .panel { grid-template-columns: minmax(0, 1fr); }
+
+  .rail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    width: var(--rail-w);
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .panel.is-open .rail { transform: none; }
+  .panel.is-open .scrim { opacity: 1; visibility: visible; pointer-events: auto; }
+
+  .topbar__menu { display: grid; }
+  .topbar { padding: 14px 16px; }
+  .viewport { padding: 18px 16px 40px; }
+}
+
+@media (max-width: 560px) {
+  .topbar__sub { display: none; }
+  .btn-sync span { display: none; }
+  .btn-sync { padding: 0 12px; }
+  .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cifra__valor { font-size: 1.25rem; }
+  .t-nombre { max-width: 220px; }
+}
+
+@media (max-width: 380px) {
+  .cifras { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 11  Utilidades ------------------------------------------------ */
+
+/* Al final de la hoja a proposito: `.u-oculto` y `.subfiltros` tienen la
+   misma especificidad, asi que si esta regla fuese antes ganaria el
+   `display:flex` de `.subfiltros` y la fila de subfiltros de la pestana
+   inactiva se veria igualmente. */
+.u-oculto { display: none; }
