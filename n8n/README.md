@@ -10,6 +10,12 @@ no hay historial ni forma de ver que cambio ni cuando.
 Cada lunes consulta el MySQL compartido, arma un email con los cambios de la
 competencia de los ultimos 7 dias y lo manda a `tech@fitnesstech.es`.
 
+Cuenta los **cuatro tipos** de cambio -altas de catalogo, cambios de precio,
+entradas y salidas de stock y bajas de catalogo-, los mismos que la pestana
+*Cambios 7 dias* de la vista de tienda del panel. Hasta el 2026-09-04 la
+consulta solo traia altas y precios, asi que el correo se dejaba fuera el
+stock y las bajas aunque el crawler si las detectaba.
+
 ```
 Schedule Trigger (semanal, lunes)
   -> Execute a SQL query   (altas y cambios de precio de 7 dias, excluyendo
