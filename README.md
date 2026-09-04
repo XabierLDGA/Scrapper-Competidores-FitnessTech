@@ -46,8 +46,7 @@ mysql -h localhost -u root -p < migrations/001_initial_schema.sql
 copy .env.example .env
 ```
 
-Edita `.env` con tus credenciales de MySQL. `N8N_WEBHOOK_URL` es opcional: si
-se deja vacio, `Notifier` simplemente loguea y no intenta enviar nada a n8n.
+Edita `.env` con tus credenciales de MySQL.
 
 ### 4. Anadir competidores
 
@@ -197,17 +196,15 @@ docker compose down -v    # borra tambien la base de datos
 - `src/detector.py` — Unica fuente de verdad para "es nuevo", "cambio de
   precio >= umbral" y "cambio de disponibilidad". El umbral de precio (5%
   por defecto) se decide aqui una sola vez; nada mas lo recalcula.
-- `src/notifier.py` — Envia el resumen diario a un webhook de n8n (o solo
-  loguea si `N8N_WEBHOOK_URL` no esta configurada). n8n decide a quien y
-  como avisar (hoy, por email); este modulo no sabe nada de destinatarios.
 - `src/db.py` — Acceso a MySQL. Convierte los `Decimal` que devuelve
   `mysql-connector` para columnas `DECIMAL` a `float` en la frontera con la
   BD, para que el resto del pipeline no tenga que lidiar con ese tipo.
 - `main.py` — Orquestacion: crawlea cada competidor, persiste snapshots,
-  detecta cambios, notifica, y al final construye el digest diario leyendo
-  el estado real de la BD (`get_new_products` / `get_unnotified_events`),
-  no listas en memoria — asi el digest es correcto aunque el crawl falle a
-  mitad para algun competidor.
+  detecta cambios y, al final, cuenta lo que ha cambiado leyendo el estado
+  real de la BD (`get_new_products` / `get_unnotified_events`), no listas
+  en memoria — asi el recuento es correcto aunque el crawl falle a mitad
+  para algun competidor. El crawler **no avisa a nadie**: quien manda el
+  correo es n8n, ver [Avisos](#avisos).
 - `dashboard.py` + `templates/dashboard.html` + `static/css/panel.css` +
   `static/js/panel.js` — Panel web de solo lectura sobre MySQL. `dashboard.py`
   es una capa fina de Flask: consulta, delega el calculo en `src/metrics.py`
@@ -244,18 +241,29 @@ docker compose down -v    # borra tambien la base de datos
    en MySQL.
 4. **Detectar** — Compara con el snapshot anterior: producto nuevo, cambio
    de precio (+-5%) o cambio de disponibilidad.
-5. **Alertar** — Al final, resumen diario (leido desde la BD) enviado a un
-   webhook de n8n.
+5. **Contar** — Al final, recuento de lo detectado, leido desde la BD.
+
+## Avisos
+
+El crawler no envia notificaciones. El aviso lo monta **n8n** por su cuenta
+con el workflow *Notificacion semanal scrapper competencia*: una vez por
+semana consulta el MySQL compartido, arma un email con los cambios de la
+competencia de los ultimos 7 dias y lo manda a `tech@fitnesstech.es`.
+
+Que el aviso viva entero en n8n significa que a quien se avisa, cada cuanto
+y con que aspecto se cambia desde su interfaz, sin tocar este repo ni
+redesplegar.
+
+> Hasta el 2026-09-04 el crawler llamaba ademas a un webhook
+> (`N8N_WEBHOOK_URL`) que nunca llego a existir en n8n: el aviso se habia
+> rediseñado como el workflow semanal de arriba y la llamada se quedo sin
+> quitar, dejando un `404` en el log cada noche. Se retiro.
 
 ## Troubleshooting
 
 **"No se pudo conectar a MySQL"**
 - Verifica que MySQL esta corriendo: `mysql -u root -p -e "SELECT 1;"`
 - Comprueba credenciales y host/puerto en `.env`.
-
-**"N8N_WEBHOOK_URL no configurado"**
-- Pon la URL del nodo Webhook del workflow de n8n en `N8N_WEBHOOK_URL`. Sin
-  ella, el resumen diario se loguea pero no se envia a ningun sitio.
 
 **El crawler corre pero no genera productos nuevos en una segunda ejecucion
 el mismo dia**

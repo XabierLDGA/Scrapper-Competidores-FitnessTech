@@ -8,7 +8,6 @@ from src.crawler import Crawler
 from src.db import Database
 from src.detector import ChangeDetector
 from src.normalizer import Normalizer
-from src.notifier import Notifier
 
 load_dotenv()
 logging.basicConfig(
@@ -98,7 +97,6 @@ async def main() -> dict:
     crawler = Crawler()
     normalizer = Normalizer(currency="EUR", country="ES")
     detector = ChangeDetector(price_change_threshold=5.0)
-    notifier = Notifier(webhook_url=os.getenv("N8N_WEBHOOK_URL"))
 
     logger.info("=" * 60)
     logger.info("Iniciando crawl de competidores")
@@ -145,7 +143,7 @@ async def main() -> dict:
         # llamar sin haberse usado fetch_rendered nunca).
         await crawler.close()
 
-    # El digest se construye leyendo el estado real de la BD (no listas en
+    # El recuento se hace leyendo el estado real de la BD (no listas en
     # memoria), asi que sigue siendo correcto aunque el crawl haya fallado
     # a mitad para algun competidor.
     new_products = db.get_new_products(days=1)
@@ -154,12 +152,14 @@ async def main() -> dict:
     logger.info("\n" + "=" * 60)
     logger.info("Crawl completado")
     logger.info(f"  - {len(new_products)} productos nuevos")
-    logger.info(f"  - {len(pending_events)} eventos de precio pendientes de notificar")
+    logger.info(f"  - {len(pending_events)} eventos de precio nuevos")
     logger.info("=" * 60)
 
-    if new_products or pending_events:
-        notifier.send_daily_digest(new_products, pending_events)
-        db.mark_events_notified([event["id"] for event in pending_events])
+    # El aviso ya no sale de aqui: n8n lee la BD por su cuenta una vez por
+    # semana y manda el correo. Los eventos se siguen marcando para que el
+    # recuento de arriba sea "lo que ha cambiado en esta vuelta" y no la
+    # suma de todo lo detectado desde el principio.
+    db.mark_events_notified([event["id"] for event in pending_events])
 
     return {
         "new_products": len(new_products),
