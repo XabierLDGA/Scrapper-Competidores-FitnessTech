@@ -9,7 +9,7 @@ from flask import Flask, flash, redirect, render_template, url_for
 
 import main as crawl_main
 from src.db import Database
-from src.metrics import PRICE_BANDS, build_targets, global_metrics
+from src.metrics import build_change_feed, build_targets, global_metrics
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -118,7 +118,7 @@ def index():
         "dashboard.html",
         targets=targets,
         totals=global_metrics(targets),
-        price_bands=PRICE_BANDS,
+        changes=build_change_feed(targets),
     )
 
 
