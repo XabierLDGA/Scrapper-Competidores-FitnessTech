@@ -2,6 +2,7 @@ from datetime import date, datetime
 
 from src.metrics import (
     build_change_feed,
+    changes_since,
     build_targets,
     global_metrics,
     target_metrics,
@@ -401,3 +402,45 @@ def test_change_feed_sin_eventos_devuelve_una_lista_vacia():
 
 def test_change_feed_sin_objetivos_devuelve_una_lista_vacia():
     assert build_change_feed([]) == []
+
+
+# ---------- recorte del feed por ventana ----------
+
+def test_changes_since_deja_solo_lo_de_dentro_de_la_ventana():
+    feed = build_change_feed(_targets_con(price_events=[
+        _evento_precio(cuando=datetime(2026, 9, 4, 3, 0)),
+        _evento_precio(cuando=datetime(2026, 8, 30, 3, 0)),
+    ]))
+
+    recorte = changes_since(feed, datetime(2026, 9, 3, 12, 0))
+
+    assert [c["when"] for c in recorte] == [datetime(2026, 9, 4, 3, 0)]
+
+
+def test_changes_since_conserva_el_orden_del_feed():
+    feed = build_change_feed(_targets_con(price_events=[
+        _evento_precio(cuando=datetime(2026, 9, 4, 1, 0)),
+        _evento_precio(cuando=datetime(2026, 9, 4, 5, 0)),
+        _evento_precio(cuando=datetime(2026, 9, 4, 3, 0)),
+    ]))
+
+    recorte = changes_since(feed, datetime(2026, 9, 3, 0, 0))
+
+    assert [c["when"].hour for c in recorte] == [5, 3, 1]
+
+
+def test_changes_since_descarta_lo_que_no_tiene_fecha():
+    # Sin fecha no se puede afirmar que sea reciente: fuera de la ventana
+    # corta, aunque siga estando en el feed largo (que ya acoto MySQL).
+    feed = build_change_feed(_targets_con(
+        price_events=[_evento_precio(cuando="ayer por la tarde")],
+    ))
+
+    assert feed[0]["when"] is None
+    assert changes_since(feed, datetime(2026, 9, 3, 0, 0)) == []
+
+
+def test_changes_since_con_ventana_que_no_pilla_nada():
+    feed = build_change_feed(_targets_con(price_events=[_evento_precio()]))
+
+    assert changes_since(feed, datetime(2027, 1, 1, 0, 0)) == []

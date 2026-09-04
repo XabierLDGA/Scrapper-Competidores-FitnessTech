@@ -238,3 +238,16 @@ def build_change_feed(targets: list[dict]) -> list[dict]:
     # final, que es donde molestan menos.
     feed.sort(key=lambda c: c["when"] or datetime.min, reverse=True)
     return feed
+
+
+def changes_since(feed: list[dict], since: datetime) -> list[dict]:
+    """Recorta un feed de cambios a los posteriores a `since`.
+
+    El panel pide a la BD una semana entera de eventos y saca de ahi las dos
+    ventanas que ensena -24 horas y 7 dias-, en vez de consultar dos veces:
+    la de un dia es siempre un subconjunto de la de la semana.
+
+    Los cambios sin fecha legible se quedan fuera: si no se puede situar un
+    evento en el tiempo, no hay razon para afirmar que es de hoy.
+    """
+    return [c for c in feed if c["when"] is not None and c["when"] >= since]

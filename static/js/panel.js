@@ -281,16 +281,20 @@
         var vacio = panelActivo.querySelector("[data-vacio]");
         if (vacio) vacio.classList.toggle("is-on", visibles === 0);
 
-        // Contadores del subfiltro de tipo, solo en la pestana de cambios:
-        // los del catalogo son fijos y ya los imprime la plantilla.
-        if (pestanaActiva === "cambios") {
+        // Contadores del subfiltro de tipo, en las dos pestanas de cambios
+        // (24 h y 7 dias): los del catalogo son fijos y ya los imprime la
+        // plantilla. Se buscan dentro del bloque de subfiltros de la pestana
+        // activa y no en toda la vista, porque las dos tienen los mismos
+        // `data-cuenta-sub` y si no siempre se repintarian los de la primera.
+        var subfiltrosActivos = vista.querySelector('[data-para="' + pestanaActiva + '"]');
+        if (pestanaActiva !== "catalogo" && subfiltrosActivos) {
           var filasCambios = [].slice.call(panelActivo.querySelectorAll("tbody tr"));
           ["", "new", "price", "stock", "removed"].forEach(function (clave) {
             var n = filasCambios.filter(function (fila) {
               var s = fila.getAttribute("data-sub");
               return !clave || s === clave || (clave === "price" && s.indexOf("price") === 0);
             }).length;
-            var salida = vista.querySelector('[data-cuenta-sub="' + clave + '"]');
+            var salida = subfiltrosActivos.querySelector('[data-cuenta-sub="' + clave + '"]');
             if (salida) salida.textContent = numeroEs(n, 0);
           });
         }

@@ -65,6 +65,41 @@
   {%- endif -%}
 {%- endmacro %}
 
+{% macro subfiltros_tipo(para) %}
+<div class="subfiltros{{ ' u-oculto' if para != 'catalogo' }}" data-para="{{ para }}">
+  <span class="filtros__rotulo">Tipo</span>
+  {% for clave, etiqueta in [('', 'Todos'), ('new', 'Alta'), ('price', 'Precio'), ('stock', 'Stock'), ('removed', 'Baja')] %}
+  <button type="button" class="pastilla pastilla--sm{{ ' is-active' if not clave }}" data-sub="{{ clave }}">
+    {{ etiqueta }} <small data-cuenta-sub="{{ clave }}"></small>
+  </button>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro tabla_cambios(panel, filas) %}
+<div class="tablawrap u-oculto" data-panel="{{ panel }}">
+  <table class="tabla">
+    <thead><tr>
+      <th>SKU</th><th>Producto</th><th>Cambio</th>
+      <th class="t-num">Detalle</th><th class="t-num">Detectado</th>
+    </tr></thead>
+    <tbody>
+      {% for c in filas %}
+      <tr data-sub="{{ c.kind }}"
+          data-busca="{{ (c.title ~ ' ' ~ (c.sku or '')) | lower }}">
+        <td class="t-sku">{{ c.sku or "—" }}</td>
+        <td class="t-nombre">{{ producto(c) }}</td>
+        <td>{{ pildora(c.kind) }}</td>
+        <td class="t-num t-detalle t-detalle--{{ TIPOS[c.kind][1] }}">{{ detalle(c) }}</td>
+        <td class="t-num t-cuando">{{ c.when | fecha(true) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="vacio" data-vacio>Sin resultados.</p>
+</div>
+{% endmacro %}
+
 {% macro producto(c) %}
   {%- if c.url -%}<a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.title }}</a>
   {%- else -%}{{ c.title }}{%- endif -%}
@@ -262,6 +297,7 @@
              data-sub="Última lectura {{ t.last_crawled_at | fecha(true) }}">
 
       {% set cambios_tienda = changes | selectattr('store', 'equalto', t.name) | list %}
+      {% set semana_tienda = changes_week | selectattr('store', 'equalto', t.name) | list %}
 
       <div class="cifras">
         <div class="cifra"><p class="cifra__rotulo">En catálogo</p>
@@ -282,6 +318,9 @@
           <button type="button" class="pastilla" data-pestana="cambios">
             Cambios 24 h <small>{{ cambios_tienda | length | miles }}</small>
           </button>
+          <button type="button" class="pastilla" data-pestana="semana">
+            Cambios 7 días <small>{{ semana_tienda | length | miles }}</small>
+          </button>
         </div>
 
         <div class="subfiltros" data-para="catalogo">
@@ -296,14 +335,8 @@
           {% endfor %}
         </div>
 
-        <div class="subfiltros u-oculto" data-para="cambios">
-          <span class="filtros__rotulo">Tipo</span>
-          {% for clave, etiqueta in [('', 'Todos'), ('new', 'Alta'), ('price', 'Precio'), ('stock', 'Stock'), ('removed', 'Baja')] %}
-          <button type="button" class="pastilla pastilla--sm{{ ' is-active' if not clave }}" data-sub="{{ clave }}">
-            {{ etiqueta }} <small data-cuenta-sub="{{ clave }}"></small>
-          </button>
-          {% endfor %}
-        </div>
+        {{ subfiltros_tipo('cambios') }}
+        {{ subfiltros_tipo('semana') }}
 
         <div class="tablawrap" data-panel="catalogo">
           <table class="tabla">
@@ -328,27 +361,8 @@
           <p class="vacio" data-vacio>Sin resultados.</p>
         </div>
 
-        <div class="tablawrap u-oculto" data-panel="cambios">
-          <table class="tabla">
-            <thead><tr>
-              <th>SKU</th><th>Producto</th><th>Cambio</th>
-              <th class="t-num">Detalle</th><th class="t-num">Detectado</th>
-            </tr></thead>
-            <tbody>
-              {% for c in cambios_tienda %}
-              <tr data-sub="{{ c.kind }}"
-                  data-busca="{{ (c.title ~ ' ' ~ (c.sku or '')) | lower }}">
-                <td class="t-sku">{{ c.sku or "—" }}</td>
-                <td class="t-nombre">{{ producto(c) }}</td>
-                <td>{{ pildora(c.kind) }}</td>
-                <td class="t-num t-detalle t-detalle--{{ TIPOS[c.kind][1] }}">{{ detalle(c) }}</td>
-                <td class="t-num t-cuando">{{ c.when | fecha(true) }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          <p class="vacio" data-vacio>Sin resultados.</p>
-        </div>
+        {{ tabla_cambios('cambios', cambios_tienda) }}
+        {{ tabla_cambios('semana', semana_tienda) }}
       </section>
     </section>
     {% endfor %}

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -9,7 +9,12 @@ from flask import Flask, flash, redirect, render_template, url_for
 
 import main as crawl_main
 from src.db import Database
-from src.metrics import build_change_feed, build_targets, global_metrics
+from src.metrics import (
+    build_change_feed,
+    build_targets,
+    changes_since,
+    global_metrics,
+)
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -103,22 +108,31 @@ def get_db() -> Database:
     )
 
 
+# El panel ensena dos ventanas de cambios: las ultimas 24 horas y la semana
+# (que es la que resume el correo de n8n cada lunes). Se pide a la BD la
+# semana entera una sola vez y la de un dia se recorta de ahi: consultar dos
+# veces solo para quedarse con un subconjunto no tiene sentido.
+WEEK_HOURS = 24 * 7
+
+
 @app.route("/")
 def index():
     db = get_db()
     targets = build_targets(
         competitors=db.get_competitor_stats(),
-        new_products=db.get_recently_added_products(hours=24),
-        price_events=db.get_recent_price_events(hours=24),
-        availability_events=db.get_recent_availability_events(hours=24),
-        removed_products=db.get_recently_removed_products(hours=24),
+        new_products=db.get_recently_added_products(hours=WEEK_HOURS),
+        price_events=db.get_recent_price_events(hours=WEEK_HOURS),
+        availability_events=db.get_recent_availability_events(hours=WEEK_HOURS),
+        removed_products=db.get_recently_removed_products(hours=WEEK_HOURS),
         catalog=db.get_latest_snapshots(),
     )
+    week = build_change_feed(targets)
     return render_template(
         "dashboard.html",
         targets=targets,
         totals=global_metrics(targets),
-        changes=build_change_feed(targets),
+        changes=changes_since(week, datetime.now() - timedelta(hours=24)),
+        changes_week=week,
     )
 
 
