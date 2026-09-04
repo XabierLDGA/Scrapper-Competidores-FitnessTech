@@ -94,7 +94,7 @@
         <path d="M2 4h12M2 8h12M2 12h8"></path>
       </svg>
       <span class="navitem__text">Cambios</span>
-      <span class="navitem__count">{{ changes | length }}</span>
+      <span class="navitem__count">{{ changes | length | miles }}</span>
     </a>
 
     {% for grupo, titulo, clase in [(propias, 'Mis tiendas', 'navitem--own'), (rivales, 'Competencia', 'navitem--rival')] %}
@@ -199,7 +199,7 @@
         <div class="cifra"><p class="cifra__rotulo">Con precio rebajado</p>
           <p class="cifra__valor"><span id="c-promo">{{ totals.promo_pct | pct }}</span><span class="cifra__unidad">%</span></p></div>
         <div class="cifra"><p class="cifra__rotulo">Cambios 24 h</p>
-          <p class="cifra__valor"><span id="c-cambios">{{ changes | length }}</span></p></div>
+          <p class="cifra__valor"><span id="c-cambios">{{ changes | length | miles }}</span></p></div>
       </div>
 
       <section class="bloque">
@@ -277,10 +277,10 @@
       <section class="bloque">
         <div class="bloque__filtros" role="group" aria-label="Datos de {{ t.name }}">
           <button type="button" class="pastilla is-active" data-pestana="catalogo">
-            Catálogo <small>{{ t.catalog | length }}</small>
+            Catálogo <small>{{ t.catalog | length | miles }}</small>
           </button>
           <button type="button" class="pastilla" data-pestana="cambios">
-            Cambios 24 h <small>{{ cambios_tienda | length }}</small>
+            Cambios 24 h <small>{{ cambios_tienda | length | miles }}</small>
           </button>
         </div>
 
@@ -291,7 +291,7 @@
               ('si', 'Disponible', t.catalog | selectattr('available') | list | length),
               ('no', 'Agotado', t.catalog | rejectattr('available') | list | length)] %}
           <button type="button" class="pastilla pastilla--sm{{ ' is-active' if not clave }}" data-sub="{{ clave }}">
-            {{ etiqueta }} <small>{{ n }}</small>
+            {{ etiqueta }} <small>{{ n | miles }}</small>
           </button>
           {% endfor %}
         </div>

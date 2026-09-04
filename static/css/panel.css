@@ -17,6 +17,7 @@
      8  Bloque y tablas
      9  Tarjetas de tienda
     10  Pantalla estrecha
+    11  Utilidades
    ========================================================================== */
 
 /* ---------- 1  Tokens y base --------------------------------------------- */
@@ -114,6 +115,7 @@ input, button { font: inherit; }
   display: flex;
   flex-direction: column;
   gap: 22px;
+  min-width: 0;
 }
 
 .view { display: none; }
@@ -125,8 +127,6 @@ input, button { font: inherit; }
   font-size: 0.719rem;
   color: var(--ink-3);
 }
-
-.u-oculto { display: none; }
 
 /* El scrim solo entra en juego con la barra lateral desplegada en movil. */
 .scrim {
@@ -247,6 +247,10 @@ input, button { font: inherit; }
 
 .navitem--pronto { color: rgba(255, 255, 255, 0.32); cursor: default; }
 .navitem--pronto:hover { color: rgba(255, 255, 255, 0.32); }
+
+/* Es el unico rotulo largo del menu y no tiene destino al que llevar: mejor
+   que envuelva a que se corte en "Comparativa Tit...". */
+.navitem--pronto .navitem__text { white-space: normal; }
 
 .pill-pronto {
   font-size: 0.594rem;
@@ -584,9 +588,13 @@ input, button { font: inherit; }
 
 /* ---------- 9  Tarjetas de tienda ---------------------------------------- */
 
+/* 270px y no los 250 del artboard, y un punto menos de cuerpo en los
+   valores: la mediana de ejemplo del diseno era "329,00 EUR", pero el
+   catalogo real llega a "1.305,00 EUR" y con tres columnas dentro de 250px
+   se cortaba en "1.305,0...". Medido: 90px de texto en 71px de hueco. */
 .tarjetas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 12px;
 }
 
@@ -654,7 +662,7 @@ input, button { font: inherit; }
 
 .tarjeta__cifras b {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.938rem;
+  font-size: 0.875rem;
   font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -706,3 +714,11 @@ input, button { font: inherit; }
 @media (max-width: 380px) {
   .cifras { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- 11  Utilidades ------------------------------------------------ */
+
+/* Al final de la hoja a proposito: `.u-oculto` y `.subfiltros` tienen la
+   misma especificidad, asi que si esta regla fuese antes ganaria el
+   `display:flex` de `.subfiltros` y la fila de subfiltros de la pestana
+   inactiva se veria igualmente. */
+.u-oculto { display: none; }

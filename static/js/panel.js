@@ -46,6 +46,15 @@
     return partes.length > 1 ? partes.join(",") : partes[0];
   }
 
+  // ---------- barra lateral en pantalla estrecha ----------
+  var panel = document.getElementById("panel");
+
+  document.addEventListener("click", function (e) {
+    if (!panel) return;
+    if (e.target.closest("[data-abrir-rail]")) panel.classList.add("is-open");
+    else if (e.target.closest("[data-cerrar-rail]")) panel.classList.remove("is-open");
+  });
+
   // ---------- busqueda ----------
   // Vive aqui, en el IIFE, porque la usan tanto la bandeja como cada vista
   // de tienda: el buscador de la barra lateral filtra la vista que este
@@ -59,23 +68,55 @@
 
   // Cada vista registra aqui su funcion de refiltrado al construirse, para
   // que el buscador no tenga que saber como funciona ninguna por dentro.
+  // Se guarda junto a su seccion porque solo se refiltra la que se esta
+  // viendo: entre la bandeja y los cuatro catalogos hay del orden de 17.000
+  // filas, y recorrerlas todas en cada pulsacion se nota.
   var refiltradores = [];
 
-  var buscador = document.getElementById("buscador");
-  if (buscador) {
-    buscador.addEventListener("input", function () {
-      textoBusqueda = buscador.value.trim().toLowerCase();
-      refiltradores.forEach(function (fn) { fn(); });
+  function registrar(vista, fn) {
+    refiltradores.push({ vista: vista, fn: fn });
+  }
+
+  function refiltrarVisible() {
+    refiltradores.forEach(function (r) {
+      if (r.vista.classList.contains("is-on")) r.fn();
     });
   }
 
-  // ---------- barra lateral en pantalla estrecha ----------
-  var panel = document.getElementById("panel");
+  var buscador = document.getElementById("buscador");
+  if (buscador) {
+    var pendiente = 0;
+    buscador.addEventListener("input", function () {
+      textoBusqueda = buscador.value.trim().toLowerCase();
+      // Con miles de filas, filtrar en cada pulsacion se atasca al teclear
+      // rapido. Se espera a que la mano pare.
+      clearTimeout(pendiente);
+      pendiente = setTimeout(refiltrarVisible, 110);
+    });
+  }
 
-  document.addEventListener("click", function (e) {
-    if (!panel) return;
-    if (e.target.closest("[data-abrir-rail]")) panel.classList.add("is-open");
-    else if (e.target.closest("[data-cerrar-rail]")) panel.classList.remove("is-open");
+  // ---------- atajos ----------
+  document.addEventListener("keydown", function (e) {
+    if (!buscador) return;
+
+    if (e.key === "/" && document.activeElement !== buscador) {
+      e.preventDefault();
+      // En pantalla estrecha el campo esta fuera de la vista: se despliega
+      // la barra antes de enfocarlo, para no escribir a ciegas.
+      if (panel && window.matchMedia("(max-width: 900px)").matches) {
+        panel.classList.add("is-open");
+      }
+      buscador.focus();
+      buscador.select();
+    } else if (e.key === "Escape") {
+      if (document.activeElement === buscador && buscador.value) {
+        buscador.value = "";
+        textoBusqueda = "";
+        refiltrarVisible();
+      } else if (panel && panel.classList.contains("is-open")) {
+        panel.classList.remove("is-open");
+      }
+    }
   });
 
   // ---------- navegacion ----------
@@ -99,6 +140,10 @@
     // Navegar cierra el menu: en movil la barra tapa la vista que se acaba
     // de elegir.
     if (panel) panel.classList.remove("is-open");
+
+    // La vista que se abre puede llevar una busqueda vigente sin aplicar,
+    // porque mientras estaba oculta no se refiltraba.
+    refiltrarVisible();
   }
 
   // ---------- filtros de la bandeja ----------
@@ -146,7 +191,7 @@
           return pasaTienda(fila) && encaja(fila, tipo) && coincide(fila);
         }).length;
         var salida = bandeja.querySelector('[data-cuenta-tipo="' + tipo + '"]');
-        if (salida) salida.textContent = n;
+        if (salida) salida.textContent = numeroEs(n, 0);
       });
 
       recalcularCifras(visibles);
@@ -180,7 +225,7 @@
         productos ? numeroEs(disp / productos, 1) : "0";
       document.getElementById("c-promo").textContent =
         productos ? numeroEs(promo / productos, 1) : "0";
-      document.getElementById("c-cambios").textContent = visibles;
+      document.getElementById("c-cambios").textContent = numeroEs(visibles, 0);
     }
 
     function pintarTarjetas() {
@@ -208,7 +253,7 @@
       filtrarBandeja();
     });
 
-    refiltradores.push(filtrarBandeja);
+    registrar(bandeja, filtrarBandeja);
     filtrarBandeja();
   }
 
@@ -246,7 +291,7 @@
               return !clave || s === clave || (clave === "price" && s.indexOf("price") === 0);
             }).length;
             var salida = vista.querySelector('[data-cuenta-sub="' + clave + '"]');
-            if (salida) salida.textContent = n;
+            if (salida) salida.textContent = numeroEs(n, 0);
           });
         }
       }
@@ -287,7 +332,7 @@
 
       // El buscador de la barra lateral filtra la vista abierta sin saber
       // como funciona por dentro: cada vista solo se apunta aqui.
-      refiltradores.push(filtrar);
+      registrar(vista, filtrar);
       filtrar();
     });
 
