@@ -168,6 +168,91 @@
     <section class="view is-on" data-view="cambios" tabindex="-1"
              data-titulo="Cambios"
              data-sub="Últimas 24 horas · {{ targets | length }} escaparates">
+
+      <div class="filtros-tienda" role="group" aria-label="Filtrar por tienda">
+        <span class="filtros__rotulo">Tienda</span>
+        <button type="button" class="pastilla is-active" data-tienda="">
+          <span class="pastilla__dot"></span>Todas
+        </button>
+        {% for t in targets %}
+        <button type="button" class="pastilla" data-tienda="{{ t.name }}"
+                data-total="{{ t.metrics.total }}"
+                data-disp="{{ t.metrics.availability_pct }}"
+                data-promo="{{ t.metrics.promo_pct }}"
+                data-live="{{ 1 if t.is_live else 0 }}">
+          <span class="pastilla__dot{{ ' is-live' if t.is_live }}"></span>{{ t.name }}
+        </button>
+        {% endfor %}
+      </div>
+
+      {#  Cada cifra que el JS repinta al filtrar va en su propio <span> con
+          id. Si el numero fuese texto suelto dentro del <p>, el JS tendria
+          que manosear firstChild.nodeValue y se romperia en cuanto alguien
+          toque el marcado. #}
+      <div class="cifras">
+        <div class="cifra"><p class="cifra__rotulo">Productos vigilados</p>
+          <p class="cifra__valor"><span id="c-productos">{{ totals.products | miles }}</span></p></div>
+        <div class="cifra"><p class="cifra__rotulo">Tiendas en línea</p>
+          <p class="cifra__valor"><span id="c-live">{{ totals.live_targets }}</span><span class="cifra__unidad" id="c-live-total">/ {{ totals.targets }}</span></p></div>
+        <div class="cifra"><p class="cifra__rotulo">Disponibilidad</p>
+          <p class="cifra__valor"><span id="c-disp">{{ totals.availability_pct | pct }}</span><span class="cifra__unidad">%</span></p></div>
+        <div class="cifra"><p class="cifra__rotulo">Con precio rebajado</p>
+          <p class="cifra__valor"><span id="c-promo">{{ totals.promo_pct | pct }}</span><span class="cifra__unidad">%</span></p></div>
+        <div class="cifra"><p class="cifra__rotulo">Cambios 24 h</p>
+          <p class="cifra__valor"><span id="c-cambios">{{ changes | length }}</span></p></div>
+      </div>
+
+      <section class="bloque">
+        <div class="bloque__filtros" role="group" aria-label="Filtrar por tipo">
+          {% for clave, etiqueta in [('', 'Todos'), ('price', 'Precios'), ('new', 'Altas'), ('stock', 'Stock'), ('removed', 'Bajas')] %}
+          <button type="button" class="pastilla{{ ' is-active' if not clave }}" data-tipo="{{ clave }}">
+            {{ etiqueta }} <small data-cuenta-tipo="{{ clave }}"></small>
+          </button>
+          {% endfor %}
+        </div>
+        <div class="tablawrap">
+          <table class="tabla">
+            <thead><tr>
+              <th>Tienda</th><th>Cambio</th><th>Producto</th>
+              <th class="t-num">Detalle</th><th class="t-num">Detectado</th>
+            </tr></thead>
+            <tbody>
+              {% for c in changes %}
+              <tr data-tienda="{{ c.store }}" data-tipo="{{ c.kind }}"
+                  data-busca="{{ (c.title ~ ' ' ~ (c.sku or '')) | lower }}">
+                <td><span class="chip">{{ c.store }}</span></td>
+                <td>{{ pildora(c.kind) }}</td>
+                <td class="t-nombre">{{ producto(c) }}</td>
+                <td class="t-num t-detalle t-detalle--{{ TIPOS[c.kind][1] }}">{{ detalle(c) }}</td>
+                <td class="t-num t-cuando">{{ c.when | fecha(true) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p class="vacio" data-vacio>Nada que revisar con este filtro.</p>
+        </div>
+      </section>
+
+      <div class="tarjetas">
+        {% for t in targets %}
+        <a class="tarjeta" href="#tienda/{{ t.slug }}" data-tienda="{{ t.name }}">
+          <span class="tarjeta__cab">
+            <span class="tarjeta__dot{{ ' is-live' if t.is_live }}"></span>
+            <span class="tarjeta__nombre">{{ t.name }}</span>
+            <span class="tarjeta__rol">{{ 'Tienda propia' if t.is_own_store else 'Competencia' }}</span>
+          </span>
+          <span class="tarjeta__cifras">
+            <span><small>Catálogo</small><b>{{ t.metrics.total | miles }}</b></span>
+            <span><small>Disponible</small><b>{{ t.metrics.availability_pct | pct }} %</b></span>
+            <span><small>Mediana</small><b>{{ t.metrics.median_price | eur }}</b></span>
+          </span>
+          <span class="tarjeta__pie">
+            {% if t.is_live %}Leída {{ t.last_crawled_at | fecha(true) }}
+            {% else %}Sin lectura reciente · {{ t.last_crawled_at | fecha(true) }}{% endif %}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
     </section>
 
     {# ------------------------- VISTAS DE TIENDA ------------------------ #}

@@ -101,6 +101,117 @@
     if (panel) panel.classList.remove("is-open");
   }
 
+  // ---------- filtros de la bandeja ----------
+  var bandeja = document.querySelector('.view[data-view="cambios"]');
+
+  if (bandeja) {
+    var filtroTienda = "";
+    var filtroTipo = "";
+
+    var filas = [].slice.call(bandeja.querySelectorAll("tbody tr"));
+    // Con `.filtros-tienda [data-tienda]` y no `[data-tienda]` a secas: las
+    // tarjetas del final llevan ese mismo atributo y falsearian las cifras.
+    var pastillasTienda = [].slice.call(
+      bandeja.querySelectorAll(".filtros-tienda [data-tienda]"));
+    var pastillasTipo = [].slice.call(bandeja.querySelectorAll("[data-tipo]"));
+    var tarjetas = [].slice.call(bandeja.querySelectorAll(".tarjeta"));
+
+    // 'price' agrupa subidas y bajadas en un solo filtro.
+    function encaja(fila, tipo) {
+      var t = fila.getAttribute("data-tipo");
+      return !tipo || t === tipo || (tipo === "price" && t.indexOf("price") === 0);
+    }
+
+    function pasaTienda(fila) {
+      return !filtroTienda || fila.getAttribute("data-tienda") === filtroTienda;
+    }
+
+    function filtrarBandeja() {
+      var visibles = 0;
+
+      filas.forEach(function (fila) {
+        var ok = pasaTienda(fila) && encaja(fila, filtroTipo) && coincide(fila);
+        fila.style.display = ok ? "" : "none";
+        if (ok) visibles++;
+      });
+
+      var vacio = bandeja.querySelector("[data-vacio]");
+      if (vacio) vacio.classList.toggle("is-on", visibles === 0);
+
+      // Contadores de las pastillas de tipo, sobre lo que deja pasar el
+      // filtro de tienda y la busqueda: si contasen sobre el total, dirian
+      // una cosa y la tabla mostraria otra.
+      ["", "price", "new", "stock", "removed"].forEach(function (tipo) {
+        var n = filas.filter(function (fila) {
+          return pasaTienda(fila) && encaja(fila, tipo) && coincide(fila);
+        }).length;
+        var salida = bandeja.querySelector('[data-cuenta-tipo="' + tipo + '"]');
+        if (salida) salida.textContent = n;
+      });
+
+      recalcularCifras(visibles);
+      pintarTarjetas();
+    }
+
+    // Al filtrar por una tienda, las cifras de cabecera pasan a ser las
+    // suyas. Los porcentajes se ponderan por tamano de catalogo: cuatro
+    // tiendas de 865 a 1.428 productos dan un numero falso con una media
+    // simple.
+    function recalcularCifras(visibles) {
+      var elegidas = pastillasTienda.filter(function (p) {
+        var nombre = p.getAttribute("data-tienda");
+        return nombre && (!filtroTienda || nombre === filtroTienda);
+      });
+      if (!elegidas.length) return;
+
+      var productos = 0, disp = 0, promo = 0, live = 0;
+      elegidas.forEach(function (p) {
+        var total = parseFloat(p.getAttribute("data-total")) || 0;
+        productos += total;
+        disp += parseFloat(p.getAttribute("data-disp")) * total;
+        promo += parseFloat(p.getAttribute("data-promo")) * total;
+        live += parseInt(p.getAttribute("data-live"), 10);
+      });
+
+      document.getElementById("c-productos").textContent = numeroEs(productos, 0);
+      document.getElementById("c-live").textContent = live;
+      document.getElementById("c-live-total").textContent = "/ " + elegidas.length;
+      document.getElementById("c-disp").textContent =
+        productos ? numeroEs(disp / productos, 1) : "0";
+      document.getElementById("c-promo").textContent =
+        productos ? numeroEs(promo / productos, 1) : "0";
+      document.getElementById("c-cambios").textContent = visibles;
+    }
+
+    function pintarTarjetas() {
+      tarjetas.forEach(function (tarjeta) {
+        var nombre = tarjeta.getAttribute("data-tienda");
+        tarjeta.style.display = (!filtroTienda || nombre === filtroTienda) ? "" : "none";
+      });
+    }
+
+    bandeja.addEventListener("click", function (e) {
+      var pastilla = e.target.closest(".pastilla");
+      if (!pastilla) return;
+
+      if (pastilla.hasAttribute("data-tienda")) {
+        filtroTienda = pastilla.getAttribute("data-tienda");
+        pastillasTienda.forEach(function (p) {
+          p.classList.toggle("is-active", p === pastilla);
+        });
+      } else if (pastilla.hasAttribute("data-tipo")) {
+        filtroTipo = pastilla.getAttribute("data-tipo");
+        pastillasTipo.forEach(function (p) {
+          p.classList.toggle("is-active", p === pastilla);
+        });
+      }
+      filtrarBandeja();
+    });
+
+    refiltradores.push(filtrarBandeja);
+    filtrarBandeja();
+  }
+
   function desdeHash() {
     mostrar((location.hash || "#cambios").slice(1));
   }
