@@ -1,6 +1,9 @@
+from datetime import date, datetime
+
 from src.metrics import (
     HEAT_LEVELS,
     PRICE_BANDS,
+    build_change_feed,
     build_targets,
     global_metrics,
     price_histogram,
@@ -402,3 +405,152 @@ def test_global_metrics_sin_objetivos_no_divide_por_cero():
 
     assert g["products"] == 0
     assert g["availability_pct"] == 0
+
+
+# ---------- feed de cambios ----------
+
+def _targets_con(**listas):
+    """Monta un objetivo unico ('Acme') con las listas de eventos que se le
+    pasen, para no repetir el andamiaje en cada test del feed."""
+    return build_targets(
+        competitors=[_competitor("Acme")],
+        new_products=listas.get("new_products", []),
+        price_events=listas.get("price_events", []),
+        availability_events=listas.get("availability_events", []),
+        removed_products=listas.get("removed_products", []),
+        catalog=[],
+    )
+
+
+def _evento_precio(tipo="decrease", old=1499.0, new=1279.0, pct=-14.7,
+                   cuando="2026-09-04T03:12:00", competitor="Acme"):
+    return {
+        "competitor": competitor, "title": "Half Rack HD", "sku": "TS-HR-HD",
+        "event_type": tipo, "old_price": old, "new_price": new,
+        "percent_change": pct, "detected_at": cuando,
+    }
+
+
+def test_change_feed_parte_los_eventos_de_precio_por_direccion():
+    feed = build_change_feed(_targets_con(price_events=[
+        _evento_precio(tipo="decrease"),
+        _evento_precio(tipo="increase", old=2790.0, new=2990.0, pct=7.2),
+    ]))
+
+    assert {c["kind"] for c in feed} == {"price_down", "price_up"}
+
+
+def test_change_feed_lleva_los_precios_y_el_porcentaje():
+    feed = build_change_feed(_targets_con(price_events=[_evento_precio()]))
+
+    cambio = feed[0]
+    assert cambio["old_price"] == 1499.0
+    assert cambio["new_price"] == 1279.0
+    assert cambio["pct"] == -14.7
+    assert cambio["was_available"] is None
+    assert cambio["last_seen"] is None
+
+
+def test_change_feed_las_altas_traen_precio_sin_precio_anterior():
+    # La plantilla pinta "antes -> ahora" solo si hay old_price: un alta
+    # tiene que dejarlo a None para que salga el precio suelto.
+    feed = build_change_feed(_targets_con(new_products=[{
+        "competitor": "Acme", "title": "Rack FT Pro", "sku": "FT-RK-20",
+        "url": "https://example.com/rack", "price": 1190.0,
+        "first_seen": "2026-09-04T03:07:00",
+    }]))
+
+    assert feed[0]["kind"] == "new"
+    assert feed[0]["new_price"] == 1190.0
+    assert feed[0]["old_price"] is None
+
+
+def test_change_feed_lleva_el_antes_y_el_despues_de_disponibilidad():
+    feed = build_change_feed(_targets_con(availability_events=[{
+        "competitor": "Acme", "title": "Mancuernas hex", "sku": "TS-MH-30",
+        "url": "https://example.com/mh", "was_available": 1,
+        "now_available": False, "detected_at": "2026-09-04T03:12:00",
+    }]))
+
+    assert feed[0]["kind"] == "stock"
+    # La BD devuelve 1/0 en unas filas y True/False en otras: el feed
+    # normaliza a bool para que la plantilla no tenga que adivinar.
+    assert feed[0]["was_available"] is True
+    assert feed[0]["now_available"] is False
+
+
+def test_change_feed_las_bajas_traen_la_ultima_vez_que_se_vio():
+    feed = build_change_feed(_targets_con(removed_products=[{
+        "competitor": "Acme", "title": "Banco plano", "sku": "TS-BP",
+        "url": "https://example.com/bp", "last_seen": date(2026, 8, 31),
+        "removed_at": "2026-09-04T03:12:00",
+    }]))
+
+    assert feed[0]["kind"] == "removed"
+    assert feed[0]["last_seen"] == date(2026, 8, 31)
+
+
+def test_change_feed_ordena_por_fecha_descendente_mezclando_tipos():
+    feed = build_change_feed(_targets_con(
+        price_events=[_evento_precio(cuando="2026-09-04T01:00:00")],
+        new_products=[{"competitor": "Acme", "title": "Nuevo", "sku": None,
+                       "url": None, "price": 10.0,
+                       "first_seen": "2026-09-04T05:00:00"}],
+        availability_events=[{"competitor": "Acme", "title": "Stock",
+                              "sku": None, "url": None, "was_available": 0,
+                              "now_available": 1,
+                              "detected_at": "2026-09-04T03:00:00"}],
+    ))
+
+    assert [c["title"] for c in feed] == ["Nuevo", "Stock", "Half Rack HD"]
+
+
+def test_change_feed_ordena_fechas_de_tipos_mezclados():
+    # MySQL devuelve date en unas columnas y datetime en otras; compararlas
+    # entre si revienta la pagina entera.
+    feed = build_change_feed(_targets_con(
+        removed_products=[{"competitor": "Acme", "title": "Baja",
+                           "sku": None, "url": None, "last_seen": None,
+                           "removed_at": date(2026, 9, 4)}],
+        price_events=[_evento_precio(cuando=datetime(2026, 9, 3, 3, 12))],
+    ))
+
+    assert [c["title"] for c in feed] == ["Baja", "Half Rack HD"]
+
+
+def test_change_feed_manda_al_final_lo_que_no_tiene_fecha_legible():
+    feed = build_change_feed(_targets_con(
+        price_events=[_evento_precio(cuando="ayer por la tarde")],
+        new_products=[{"competitor": "Acme", "title": "Con fecha",
+                       "sku": None, "url": None, "price": 10.0,
+                       "first_seen": "2026-09-01T03:00:00"}],
+    ))
+
+    assert [c["title"] for c in feed] == ["Con fecha", "Half Rack HD"]
+    assert feed[-1]["when"] is None
+
+
+def test_change_feed_mezcla_las_tiendas_y_marca_las_propias():
+    targets = build_targets(
+        competitors=[_competitor("Titanium Strength"),
+                     _competitor("Fitness Tech")],
+        new_products=[],
+        price_events=[_evento_precio(competitor="Titanium Strength",
+                                     cuando="2026-09-04T03:12:00"),
+                      _evento_precio(competitor="Fitness Tech",
+                                     cuando="2026-09-04T03:07:00")],
+        availability_events=[], removed_products=[], catalog=[],
+    )
+
+    feed = build_change_feed(targets)
+    por_tienda = {c["store"]: c for c in feed}
+    assert por_tienda["Titanium Strength"]["is_own_store"] is False
+    assert por_tienda["Fitness Tech"]["is_own_store"] is True
+
+
+def test_change_feed_sin_eventos_devuelve_una_lista_vacia():
+    assert build_change_feed(_targets_con()) == []
+
+
+def test_change_feed_sin_objetivos_devuelve_una_lista_vacia():
+    assert build_change_feed([]) == []

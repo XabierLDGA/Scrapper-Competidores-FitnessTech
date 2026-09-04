@@ -257,3 +257,99 @@ def global_metrics(targets: list[dict]) -> dict:
             default=None,
         ),
     }
+
+
+def _bool_o_none(value) -> bool | None:
+    """MySQL devuelve 1/0 en unas filas y True/False en otras. La plantilla
+    no deberia tener que distinguirlas, asi que el feed normaliza aqui."""
+    return None if value is None else bool(value)
+
+
+def build_change_feed(targets: list[dict]) -> list[dict]:
+    """Aplana los cuatro tipos de evento de todos los objetivos en una sola
+    lista, ordenada de mas reciente a mas antiguo.
+
+    Es lo que alimenta la bandeja de la pantalla principal: la pregunta que
+    se le hace al panel cada manana es "que se movio anoche", y esa
+    respuesta no deberia estar repartida en cuatro tablas.
+
+    No compone texto: guarda los valores y deja que la plantilla los pinte
+    con los filtros de formato, para que el formato espanol viva en un solo
+    sitio.
+    """
+    feed = []
+
+    for target in targets:
+        comun = {"store": target["name"],
+                 "is_own_store": target["is_own_store"]}
+
+        for event in target["price_events"]:
+            feed.append({
+                **comun,
+                "kind": "price_down" if event.get("event_type") == "decrease" else "price_up",
+                "sku": event.get("sku"),
+                "title": event.get("title"),
+                "url": event.get("url"),
+                "when": _as_datetime(event.get("detected_at")),
+                "old_price": event.get("old_price"),
+                "new_price": event.get("new_price"),
+                "pct": event.get("percent_change"),
+                "was_available": None,
+                "now_available": None,
+                "last_seen": None,
+            })
+
+        for product in target["new_products"]:
+            feed.append({
+                **comun,
+                "kind": "new",
+                "sku": product.get("sku"),
+                "title": product.get("title"),
+                "url": product.get("url"),
+                "when": _as_datetime(product.get("first_seen")),
+                # Sin precio anterior: la plantilla pinta el precio suelto.
+                "old_price": None,
+                "new_price": product.get("price"),
+                "pct": None,
+                "was_available": None,
+                "now_available": None,
+                "last_seen": None,
+            })
+
+        for event in target["availability_events"]:
+            feed.append({
+                **comun,
+                "kind": "stock",
+                "sku": event.get("sku"),
+                "title": event.get("title"),
+                "url": event.get("url"),
+                "when": _as_datetime(event.get("detected_at")),
+                "old_price": None,
+                "new_price": None,
+                "pct": None,
+                "was_available": _bool_o_none(event.get("was_available")),
+                "now_available": _bool_o_none(event.get("now_available")),
+                "last_seen": None,
+            })
+
+        for product in target["removed_products"]:
+            feed.append({
+                **comun,
+                "kind": "removed",
+                "sku": product.get("sku"),
+                "title": product.get("title"),
+                "url": product.get("url"),
+                "when": _as_datetime(product.get("removed_at")),
+                "old_price": None,
+                "new_price": None,
+                "pct": None,
+                "was_available": None,
+                "now_available": None,
+                "last_seen": product.get("last_seen"),
+            })
+
+    # datetime.min para las fechas ilegibles: ordenar con None dentro de la
+    # lista lanza TypeError y se lleva por delante la pagina entera. Van al
+    # final, que es donde molestan menos.
+    feed.sort(key=lambda c: c["when"] or datetime.min, reverse=True)
+    return feed
