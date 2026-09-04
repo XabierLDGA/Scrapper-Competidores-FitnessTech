@@ -56,6 +56,9 @@ Repo `Scrapper-Competidores-FitnessTech` (local:
 - `static/js/console.js` → `static/js/panel.js`: reescrito.
 - `tests/test_metrics.py`: tests nuevos del feed; fuera los del mapa de
   calor.
+- `README.md`: describe un panel de tres clases de vista con mapa de
+  posicionamiento y cinco pestañas por objetivo. Se pone al día, o queda
+  mintiendo sobre lo único que documenta del panel.
 
 No se toca `src/crawler.py`, `src/db.py`, `src/detector.py`,
 `src/normalizer.py`, `src/notifier.py`, `main.py`, `scheduler.py` ni las
@@ -99,26 +102,35 @@ Cada entrada del feed:
     "sku": str | None,
     "title": str,
     "url": str | None,
-    "detail": str,         # texto ya formateado de la columna Detalle
-    "pct": float | None,   # solo en cambios de precio
-    "when": datetime | None,
+    "when": datetime | None,   # fecha por la que se ordena el feed
+    # Campos del detalle, a None en los tipos que no los usan:
+    "old_price": float | None,
+    "new_price": float | None,
+    "pct": float | None,
+    "was_available": bool | None,
+    "now_available": bool | None,
+    "last_seen": date | None,
 }
 ```
 
+El feed **no compone texto**: guarda valores y la plantilla los pinta con
+los filtros Jinja que ya existen en `dashboard.py` (`eur`, `pct`, `fecha`),
+que no se tocan. Así los tests comparan números y no cadenas con comas y
+símbolos de euro, y el formato español sigue en un solo sitio.
+
 Mapeo desde las listas que ya trae cada objetivo:
 
-| Origen | `kind` | `detail` | `when` |
+| Origen | `kind` | Campos del detalle | `when` |
 | --- | --- | --- | --- |
-| `price_events` con `event_type == "decrease"` | `price_down` | `1.499,00 € → 1.279,00 €` | `detected_at` |
+| `price_events` con `event_type == "decrease"` | `price_down` | `old_price`, `new_price`, `pct` | `detected_at` |
 | `price_events` con `event_type == "increase"` | `price_up` | ídem | `detected_at` |
-| `new_products` | `new` | precio de alta | `first_seen` |
-| `availability_events` | `stock` | `Agotado → Disponible` | `detected_at` |
-| `removed_products` | `removed` | `Visto 31.08.2026` | `removed_at` |
+| `new_products` | `new` | `new_price` (precio de alta) | `first_seen` |
+| `availability_events` | `stock` | `was_available`, `now_available` | `detected_at` |
+| `removed_products` | `removed` | `last_seen` | `removed_at` |
 
-`pct` sale de `percent_change` en los eventos de precio y es `None` en el
-resto. El formato español de números y fechas sigue viviendo en los filtros
-Jinja de `dashboard.py` (`eur`, `pct`, `fecha`), que no se tocan: el feed
-guarda los valores y la plantilla los pinta.
+Las altas usan `new_price` y dejan `old_price` a `None` a propósito: así la
+plantilla tiene una sola regla —si hay `old_price` pinta `antes → ahora`, y
+si no, solo el precio— en vez de un caso por tipo.
 
 La ordenación reutiliza `_as_datetime`, que ya existe en el módulo para
 esto mismo. MySQL devuelve `date` en unas columnas y `datetime` en otras, y
@@ -244,8 +256,8 @@ contadores que suben al entrar y todo el manejo del mapa de calor
 - Ordena por fecha descendente mezclando tipos distintos.
 - Cada tipo de origen produce su `kind` (los eventos de precio se parten en
   `price_down` y `price_up` según `event_type`).
-- El detalle sale formateado según la tabla de mapeo.
-- `pct` solo viene en cambios de precio.
+- Cada tipo rellena sus campos de detalle y deja el resto a `None`.
+- Las altas traen `new_price` con `old_price` a `None`.
 - Mezcla las cuatro tiendas en una sola lista y marca `is_own_store`.
 - Listas vacías dan un feed vacío, sin reventar.
 - Fechas de tipos mezclados (`date` y `datetime`) se ordenan juntas.
