@@ -1,0 +1,223 @@
+[
+  {
+    "updatedAt": "2026-09-01T08:20:36.502Z",
+    "createdAt": "2026-08-20T12:41:49.118Z",
+    "id": "Le0ZSfFm1hIxtqrq",
+    "name": "Notificación semanal scrapper competencia",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "triggerAtDay": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          -224,
+          -144
+        ],
+        "id": "09863671-8af8-4e1b-b2bd-867beb191bd6",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT 'nuevo' AS tipo, c.name AS competidor, p.title AS producto, p.sku, p.url,\n       NULL AS antes, s.price AS ahora, p.first_seen AS fecha\nFROM products p\nJOIN competitors c ON c.id = p.competitor_id\nLEFT JOIN product_snapshots s ON s.product_id = p.id AND s.captured_at = p.first_seen\nWHERE p.first_seen >= NOW() - INTERVAL 7 DAY\n  AND c.name NOT IN ('Fitness Tech', 'Fitness Tech FR', 'Fitness Tech PT')\n\nUNION ALL\n\nSELECT 'precio' AS tipo, c.name AS competidor, p.title AS producto, p.sku, NULL AS url,\n       pe.old_price AS antes, pe.new_price AS ahora, pe.detected_at AS fecha\nFROM price_events pe\nJOIN products p ON p.id = pe.product_id\nJOIN competitors c ON c.id = p.competitor_id\nWHERE pe.detected_at >= NOW() - INTERVAL 7 DAY\n  AND c.name NOT IN ('Fitness Tech', 'Fitness Tech FR', 'Fitness Tech PT')\n\nORDER BY competidor, fecha DESC;",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.mySql",
+        "typeVersion": 2.5,
+        "position": [
+          -48,
+          -144
+        ],
+        "id": "fc26688b-4ec6-4030-a9dc-04d2ffedc643",
+        "name": "Execute a SQL query",
+        "credentials": {
+          "mySql": {
+            "id": "vwkxSa3PNpqB5Qv7",
+            "name": "MySQL scrapper"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const rows = $input.all().map(i => i.json);\nif (!rows.length) return [{ json: { skip: true } }];\n\n// ---------------------------------------------------------------------------\n// Mismo sistema visual que el panel de vigilancia, en tema claro. Los colores\n// son los tokens de static/css/panel.css, literales: en un email no valen las\n// variables CSS. Y ojo con el par rojo/verde, que va al reves de lo que\n// parece: una BAJADA de precio de la competencia se pinta en rojo (mala\n// noticia para nosotros) y una SUBIDA en verde. Es la convencion del panel.\n// ---------------------------------------------------------------------------\nconst BG = '#f4f6f6';        // --bg\nconst SURF = '#ffffff';      // --surface\nconst SURF2 = '#fafbfb';     // --surface-2\nconst INK = '#0c1112';       // --ink\nconst INK2 = '#59666b';      // --ink-2\nconst INK3 = '#8e9a9e';      // --ink-3\nconst LINE = '#e6eaeb';      // --line\nconst TEAL = '#00a7af';      // --accent\nconst TEAL_INK = '#00666b';  // --accent-ink\nconst TEAL_WASH = '#e6f6f7'; // --accent-wash, aplanado sobre blanco\n\nconst DOWN_BG = '#fdecec', DOWN_INK = '#b3261e';   // bajada de precio\nconst UP_BG = '#e7f6ee', UP_INK = '#127a4a';       // subida de precio\nconst NEW_BG = '#eaf1fe', NEW_INK = '#2b4ec2';     // alta de catalogo\n\n// El panel usa Archivo italica para los titulos, IBM Plex Sans para el cuerpo\n// e IBM Plex Mono para las cifras. En email no hay webfonts fiables, asi que\n// se cae a la familia mas parecida que trae cada sistema.\nconst SANS = \"font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;\";\nconst MO = \"font-family:'IBM Plex Mono',Consolas,Menlo,monospace;\";\nconst TITULO = SANS + 'font-style:italic;font-weight:bold;text-transform:uppercase;letter-spacing:-.01em;';\nconst ROTULO = SANS + 'font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:' + INK3 + ';';\n\nconst fd = n => n.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });\nconst hoy = new Date();\nconst rango = fd(new Date(hoy - 6048e5)) + ' - ' + fd(hoy);\n\n// Formato espanol con separador de miles, igual que el filtro `eur` del\n// panel: punto para los miles, coma para los decimales.\nconst eur = v => {\n  const n = Number(v);\n  if (!isFinite(n)) return '&mdash;';\n  const partes = n.toFixed(2).split('.');\n  partes[0] = partes[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');\n  return partes[0] + ',' + partes[1] + ' &euro;';\n};\n\nconst esc = s => String(s == null ? '' : s)\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\n// La pildora de tipo de cambio de la bandeja del panel.\nfunction pildora(bg, ink, texto) {\n  let s = '<span style=\"' + SANS + 'display:inline-block;background:' + bg + ';color:' + ink + ';';\n  s += 'font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap;\">' + texto + '</span>';\n  return s;\n}\n\n// Una tarjeta de cifra de las de la cabecera del panel.\nfunction cifra(rotulo, valor) {\n  let s = '<td width=\"33%\" style=\"padding:0 5px;\" valign=\"top\">';\n  s += '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background:' + SURF + ';';\n  s += 'border:1px solid ' + LINE + ';border-radius:14px;\"><tr><td style=\"padding:13px 15px;\">';\n  s += '<div style=\"' + SANS + 'font-size:11px;color:' + INK3 + ';\">' + rotulo + '</div>';\n  s += '<div style=\"' + MO + 'font-size:22px;color:' + INK + ';padding-top:7px;\">' + valor + '</div>';\n  s += '</td></tr></table></td>';\n  return s;\n}\n\n// El SKU va en su propia linea, como en la columna SKU del panel.\nfunction sku(v) {\n  return '<div style=\"' + MO + 'font-size:11px;color:' + INK3 + ';padding-top:5px;\">'\n    + esc(v || '&mdash;') + '</div>';\n}\n\n// Una fila de cambio: pildora a la izquierda y el detalle a la derecha, en vez\n// de las cinco columnas del panel. Con 640px de ancho y moviles de por medio,\n// cinco columnas se estrujan hasta ser ilegibles.\nfunction fila(bg, ink, etiqueta, cuerpo, ultima) {\n  let s = '<tr><td style=\"padding:13px 0;' + (ultima ? '' : 'border-bottom:1px solid ' + LINE + ';') + '\">';\n  s += '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"><tr>';\n  s += '<td width=\"78\" valign=\"top\" style=\"padding-right:12px;\">' + pildora(bg, ink, etiqueta) + '</td>';\n  s += '<td valign=\"top\">' + cuerpo + '</td>';\n  s += '</tr></table></td></tr>';\n  return s;\n}\n\nconst g = {};\nrows.forEach(r => { (g[r.competidor] = g[r.competidor] || []).push(r); });\n\nconst totalNuevos = rows.filter(r => r.tipo === 'nuevo').length;\nconst precios = rows.filter(r => r.tipo !== 'nuevo');\nconst bajadas = precios.filter(r => Number(r.ahora) < Number(r.antes)).length;\nconst subidas = precios.length - bajadas;\n\nlet h = '<div style=\"background:' + BG + ';padding:24px 12px;\">';\nh += '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\" ';\nh += 'style=\"max-width:640px;margin:0 auto;background:' + SURF + ';border:1px solid ' + LINE + ';';\nh += 'border-radius:14px;overflow:hidden;' + SANS + 'color:' + INK + ';\">';\n\n// Banda de marca: negra en los dos temas del panel, como la barra lateral.\nh += '<tr><td style=\"background:#000000;padding:16px 26px;\">';\nh += '<span style=\"' + TITULO + 'font-size:16px;color:#ffffff;\">Fitness Tech</span>';\nh += '<span style=\"' + MO + 'font-size:11px;color:rgba(255,255,255,.45);\"> &nbsp;Vigilancia de mercado</span>';\nh += '</td></tr>';\n\n// Cabecera.\nh += '<tr><td style=\"padding:22px 26px 18px;border-bottom:1px solid ' + LINE + ';\">';\nh += '<div style=\"' + TITULO + 'font-size:19px;color:' + INK + ';\">Cambios de la competencia</div>';\nh += '<div style=\"' + SANS + 'font-size:13px;color:' + INK3 + ';padding-top:6px;\">';\nh += 'Resumen semanal &nbsp;&middot;&nbsp; ' + rango + '</div>';\nh += '</td></tr>';\n\n// Cifras de cabecera.\nh += '<tr><td style=\"padding:18px 21px 4px;\">';\nh += '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"><tr>';\nh += cifra('Altas', totalNuevos);\nh += cifra('Subidas', subidas);\nh += cifra('Bajadas', bajadas);\nh += '</tr></table></td></tr>';\n\nfor (const k in g) {\n  const altas = g[k].filter(r => r.tipo === 'nuevo');\n  const cambios = g[k].filter(r => r.tipo !== 'nuevo');\n\n  h += '<tr><td style=\"padding:22px 26px 0;\">';\n  h += '<div style=\"border-top:1px solid ' + LINE + ';padding-top:20px;\">';\n  h += '<span style=\"display:inline-block;width:7px;height:7px;border-radius:50%;background:' + TEAL + ';\"></span>';\n  h += '<span style=\"' + SANS + 'font-size:15px;font-weight:bold;color:' + INK + ';\">&nbsp; ' + esc(k) + '</span>';\n  h += '<span style=\"' + SANS + 'font-size:12px;color:' + INK3 + ';\"> &nbsp;&middot;&nbsp; ';\n  h += altas.length + ' altas &nbsp;&middot;&nbsp; ' + cambios.length + ' de precio</span>';\n  h += '</div></td></tr>';\n\n  h += '<tr><td style=\"padding:4px 26px 0;\">';\n  h += '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">';\n\n  const total = altas.length + cambios.length;\n  let i = 0;\n\n  for (const r of altas) {\n    i++;\n    let c = '<div style=\"' + SANS + 'font-size:14px;line-height:1.4;color:' + INK + ';\">';\n    c += (r.url\n      ? '<a href=\"' + esc(r.url) + '\" style=\"color:' + INK + ';text-decoration:none;\">' + esc(r.producto) + '</a>'\n      : esc(r.producto));\n    c += '</div>';\n    c += sku(r.sku);\n    c += '<div style=\"' + MO + 'font-size:12.5px;color:' + INK2 + ';padding-top:3px;\">';\n    c += (r.ahora != null ? eur(r.ahora) : 'Sin precio') + '</div>';\n    h += fila(NEW_BG, NEW_INK, 'Alta', c, i === total);\n  }\n\n  for (const r of cambios) {\n    i++;\n    const sube = Number(r.ahora) > Number(r.antes);\n    const bg = sube ? UP_BG : DOWN_BG;\n    const ink = sube ? UP_INK : DOWN_INK;\n    const antes = Number(r.antes);\n    const pct = isFinite(antes) && antes !== 0\n      ? ((Number(r.ahora) - antes) / antes * 100)\n      : null;\n\n    let c = '<div style=\"' + SANS + 'font-size:14px;line-height:1.4;color:' + INK + ';\">' + esc(r.producto) + '</div>';\n    c += sku(r.sku);\n    c += '<div style=\"' + MO + 'font-size:12.5px;color:' + ink + ';padding-top:3px;\">';\n    c += eur(r.antes) + ' <span style=\"color:' + INK3 + ';\">&rarr;</span> ' + eur(r.ahora);\n    if (pct !== null) {\n      c += ' &nbsp;<b>' + (pct > 0 ? '+' : '') + pct.toFixed(1).replace('.', ',') + ' %</b>';\n    }\n    c += '</div>';\n    h += fila(bg, ink, sube ? 'Subida' : 'Bajada', c, i === total);\n  }\n\n  h += '</table></td></tr>';\n}\n\n// Llamada al panel, con el turquesa del boton Sincronizar.\nh += '<tr><td style=\"padding:28px 26px 30px;text-align:center;\">';\nh += '<a href=\"https://fitnesstech.duckdns.org/competencia\" style=\"' + SANS + 'display:inline-block;';\nh += 'background:' + TEAL + ';color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;';\nh += 'padding:13px 28px;border-radius:10px;\">Abrir el panel</a>';\nh += '<div style=\"' + SANS + 'font-size:12px;color:' + INK3 + ';padding-top:11px;\">';\nh += 'Todo el detalle, tienda por tienda</div>';\nh += '</td></tr>';\n\n// Pie.\nh += '<tr><td style=\"padding:15px 26px;border-top:1px solid ' + LINE + ';background:' + SURF2 + ';\">';\nh += '<span style=\"' + ROTULO + '\">Origen: MySQL &middot; Enviado cada lunes por n8n</span>';\nh += '</td></tr>';\n\nh += '</table></div>';\n\nreturn [{ json: { html: h, skip: false, totalNuevos: totalNuevos, totalPrecios: precios.length, rango: rango } }];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          160,
+          -144
+        ],
+        "id": "1428a13a-503a-4aa8-9193-b65ccecc0268",
+        "name": "Code in JavaScript"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "b5fd950c-5bc1-428b-8e9d-879dd51f051d",
+                "leftValue": "={{ $json.skip }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          384,
+          -144
+        ],
+        "id": "b56a7e4a-74d7-497f-9a8a-0fc8d5fa799b",
+        "name": "If"
+      },
+      {
+        "parameters": {
+          "fromEmail": "xlopez@fitnesstech.es",
+          "toEmail": "tech@fitnesstech.es",
+          "subject": "=📊 Competencia: {{ $json.totalNuevos }} nuevos, {{ $json.totalPrecios }} cambios de precio ({{ $json.rango }})",
+          "html": "={{ $json.html }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          608,
+          -240
+        ],
+        "id": "9f9f479d-f44a-49e9-8c12-2bddf8813e90",
+        "name": "Send an Email",
+        "webhookId": "6943a9a3-0121-4012-b551-faefeb5f88c9",
+        "credentials": {
+          "smtp": {
+            "id": "vHmUN0MVi40cidD7",
+            "name": "SMTP account 2"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Execute a SQL query",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute a SQL query": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Send an Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "staticData": {
+      "node:Schedule Trigger": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "8493a373-80dd-47c0-acbe-6df07373e2de",
+    "activeVersionId": "8493a373-80dd-47c0-acbe-6df07373e2de",
+    "versionCounter": 53,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-08-20T12:41:49.120Z",
+        "createdAt": "2026-08-20T12:41:49.120Z",
+        "role": "workflow:owner",
+        "workflowId": "Le0ZSfFm1hIxtqrq",
+        "projectId": "Fw1JjNgTTejyIJAa",
+        "project": {
+          "updatedAt": "2026-08-20T08:26:27.794Z",
+          "createdAt": "2026-08-20T08:06:03.781Z",
+          "id": "Fw1JjNgTTejyIJAa",
+          "name": "Tech Fitness Tech <tech@fitnesstech.es>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "0c59d3d1-8525-448b-9434-e2c53cebf4c8"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Version 05",
+      "description": ""
+    }
+  }
+]
