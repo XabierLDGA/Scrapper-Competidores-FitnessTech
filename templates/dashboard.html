@@ -260,6 +260,96 @@
     <section class="view" data-view="tienda/{{ t.slug }}" tabindex="-1"
              data-titulo="{{ t.name }}"
              data-sub="Última lectura {{ t.last_crawled_at | fecha(true) }}">
+
+      {% set cambios_tienda = changes | selectattr('store', 'equalto', t.name) | list %}
+
+      <div class="cifras">
+        <div class="cifra"><p class="cifra__rotulo">En catálogo</p>
+          <p class="cifra__valor">{{ t.metrics.total | miles }}</p></div>
+        <div class="cifra"><p class="cifra__rotulo">Disponible</p>
+          <p class="cifra__valor">{{ t.metrics.availability_pct | pct }}<span class="cifra__unidad">%</span></p></div>
+        <div class="cifra"><p class="cifra__rotulo">Precio mediano</p>
+          <p class="cifra__valor">{{ t.metrics.median_price | eur }}</p></div>
+        <div class="cifra"><p class="cifra__rotulo">Precio más alto</p>
+          <p class="cifra__valor">{{ t.metrics.max_price | eur }}</p></div>
+      </div>
+
+      <section class="bloque">
+        <div class="bloque__filtros" role="group" aria-label="Datos de {{ t.name }}">
+          <button type="button" class="pastilla is-active" data-pestana="catalogo">
+            Catálogo <small>{{ t.catalog | length }}</small>
+          </button>
+          <button type="button" class="pastilla" data-pestana="cambios">
+            Cambios 24 h <small>{{ cambios_tienda | length }}</small>
+          </button>
+        </div>
+
+        <div class="subfiltros" data-para="catalogo">
+          <span class="filtros__rotulo">Estado</span>
+          {% for clave, etiqueta, n in [
+              ('', 'Todos', t.catalog | length),
+              ('si', 'Disponible', t.catalog | selectattr('available') | list | length),
+              ('no', 'Agotado', t.catalog | rejectattr('available') | list | length)] %}
+          <button type="button" class="pastilla pastilla--sm{{ ' is-active' if not clave }}" data-sub="{{ clave }}">
+            {{ etiqueta }} <small>{{ n }}</small>
+          </button>
+          {% endfor %}
+        </div>
+
+        <div class="subfiltros u-oculto" data-para="cambios">
+          <span class="filtros__rotulo">Tipo</span>
+          {% for clave, etiqueta in [('', 'Todos'), ('new', 'Alta'), ('price', 'Precio'), ('stock', 'Stock'), ('removed', 'Baja')] %}
+          <button type="button" class="pastilla pastilla--sm{{ ' is-active' if not clave }}" data-sub="{{ clave }}">
+            {{ etiqueta }} <small data-cuenta-sub="{{ clave }}"></small>
+          </button>
+          {% endfor %}
+        </div>
+
+        <div class="tablawrap" data-panel="catalogo">
+          <table class="tabla">
+            <thead><tr>
+              <th>SKU</th><th>Producto</th><th>Estado</th>
+              <th class="t-num">Precio</th><th class="t-num">Última lectura</th>
+            </tr></thead>
+            <tbody>
+              {% for p in t.catalog %}
+              <tr data-sub="{{ 'si' if p.available else 'no' }}"
+                  data-busca="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
+                <td class="t-sku">{{ p.sku or "—" }}</td>
+                <td class="t-nombre">{{ producto(p) }}</td>
+                <td>{% if p.available %}<span class="pildora pildora--down">Disponible</span>
+                    {% else %}<span class="pildora pildora--up">Agotado</span>{% endif %}</td>
+                <td class="t-num t-detalle">{{ p.price | eur }}</td>
+                <td class="t-num t-cuando">{{ p.captured_at | fecha }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p class="vacio" data-vacio>Sin resultados.</p>
+        </div>
+
+        <div class="tablawrap u-oculto" data-panel="cambios">
+          <table class="tabla">
+            <thead><tr>
+              <th>SKU</th><th>Producto</th><th>Cambio</th>
+              <th class="t-num">Detalle</th><th class="t-num">Detectado</th>
+            </tr></thead>
+            <tbody>
+              {% for c in cambios_tienda %}
+              <tr data-sub="{{ c.kind }}"
+                  data-busca="{{ (c.title ~ ' ' ~ (c.sku or '')) | lower }}">
+                <td class="t-sku">{{ c.sku or "—" }}</td>
+                <td class="t-nombre">{{ producto(c) }}</td>
+                <td>{{ pildora(c.kind) }}</td>
+                <td class="t-num t-detalle t-detalle--{{ TIPOS[c.kind][1] }}">{{ detalle(c) }}</td>
+                <td class="t-num t-cuando">{{ c.when | fecha(true) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p class="vacio" data-vacio>Sin resultados.</p>
+        </div>
+      </section>
     </section>
     {% endfor %}
 

@@ -212,6 +212,85 @@
     filtrarBandeja();
   }
 
+  // ---------- vistas de tienda ----------
+  [].slice.call(document.querySelectorAll('.view[data-view^="tienda/"]'))
+    .forEach(function (vista) {
+      var pestanaActiva = "catalogo";
+      var sub = "";
+
+      function encajaSub(fila) {
+        var s = fila.getAttribute("data-sub");
+        return !sub || s === sub || (sub === "price" && s.indexOf("price") === 0);
+      }
+
+      function filtrar() {
+        var panelActivo = vista.querySelector('[data-panel="' + pestanaActiva + '"]');
+        var visibles = 0;
+
+        [].slice.call(panelActivo.querySelectorAll("tbody tr")).forEach(function (fila) {
+          var ok = encajaSub(fila) && coincide(fila);
+          fila.style.display = ok ? "" : "none";
+          if (ok) visibles++;
+        });
+
+        var vacio = panelActivo.querySelector("[data-vacio]");
+        if (vacio) vacio.classList.toggle("is-on", visibles === 0);
+
+        // Contadores del subfiltro de tipo, solo en la pestana de cambios:
+        // los del catalogo son fijos y ya los imprime la plantilla.
+        if (pestanaActiva === "cambios") {
+          var filasCambios = [].slice.call(panelActivo.querySelectorAll("tbody tr"));
+          ["", "new", "price", "stock", "removed"].forEach(function (clave) {
+            var n = filasCambios.filter(function (fila) {
+              var s = fila.getAttribute("data-sub");
+              return !clave || s === clave || (clave === "price" && s.indexOf("price") === 0);
+            }).length;
+            var salida = vista.querySelector('[data-cuenta-sub="' + clave + '"]');
+            if (salida) salida.textContent = n;
+          });
+        }
+      }
+
+      function cambiarPestana(clave) {
+        pestanaActiva = clave;
+        sub = "";
+
+        vista.querySelectorAll("[data-pestana]").forEach(function (b) {
+          b.classList.toggle("is-active", b.getAttribute("data-pestana") === clave);
+        });
+        vista.querySelectorAll("[data-panel]").forEach(function (p) {
+          p.classList.toggle("u-oculto", p.getAttribute("data-panel") !== clave);
+        });
+        vista.querySelectorAll("[data-para]").forEach(function (f) {
+          f.classList.toggle("u-oculto", f.getAttribute("data-para") !== clave);
+          f.querySelectorAll("[data-sub]").forEach(function (b, i) {
+            b.classList.toggle("is-active", i === 0);
+          });
+        });
+        filtrar();
+      }
+
+      vista.addEventListener("click", function (e) {
+        var boton = e.target.closest(".pastilla");
+        if (!boton) return;
+
+        if (boton.hasAttribute("data-pestana")) {
+          cambiarPestana(boton.getAttribute("data-pestana"));
+        } else if (boton.hasAttribute("data-sub")) {
+          sub = boton.getAttribute("data-sub");
+          boton.parentNode.querySelectorAll("[data-sub]").forEach(function (b) {
+            b.classList.toggle("is-active", b === boton);
+          });
+          filtrar();
+        }
+      });
+
+      // El buscador de la barra lateral filtra la vista abierta sin saber
+      // como funciona por dentro: cada vista solo se apunta aqui.
+      refiltradores.push(filtrar);
+      filtrar();
+    });
+
   function desdeHash() {
     mostrar((location.hash || "#cambios").slice(1));
   }
