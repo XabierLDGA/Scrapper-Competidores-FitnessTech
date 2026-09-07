@@ -57,7 +57,8 @@ Cuatro piezas, cada una con una responsabilidad y una frontera clara:
 
 ```
 Excel de producto
-      │  import_comparativa.py  (a mano, cuando producto revise)
+      │  import_comparativa.py  ->  data/titanium_pairs.sql
+      │  (a mano, cuando producto revise; se aplica con mysql < fichero)
       ▼
 MySQL: titanium_pairs ──┐
                         ├─► src/metrics.py: build_titanium_comparison()  ─► pantalla
@@ -112,13 +113,35 @@ que esta hay que aplicarla a mano igual que se hizo con la `006`.
 ## 2. Importador: `import_comparativa.py`
 
 Script en la raíz, junto a los `export_excel*.py` que ya hay. Lee el `.xlsx`
-con `openpyxl` y hace **reemplazo completo dentro de una transacción**:
-`DELETE FROM titanium_pairs` seguido de los `INSERT`. Sin lógica de
+con `openpyxl` y **emite un fichero SQL**, `data/titanium_pairs.sql`, con un
+**reemplazo completo dentro de una transacción**: `START TRANSACTION`,
+`DELETE FROM titanium_pairs`, los `INSERT` y `COMMIT`. Sin lógica de
 diferencias ni de borrado que mantener, y si producto quita una fila del
 Excel, desaparece también aquí.
 
-El fichero se versiona en `data/comparativa-titanium.xlsx`, y el script lo
-toma por defecto de ahí, admitiendo otra ruta como argumento.
+El fichero de producto se versiona en `data/comparativa-titanium.xlsx` y el
+script lo toma por defecto de ahí, admitiendo otra ruta como argumento.
+
+**Por qué emite SQL en vez de escribir en la base.** Dos restricciones del
+despliegue que no se pueden esquivar:
+
+- `openpyxl` **no está en la imagen a propósito**, para no engordarla
+  (`export_excel.py:3-4`). El script no puede correr dentro del contenedor.
+- El contenedor `mysql` **no publica el 3306**: solo es alcanzable desde la
+  red interna de Docker. El script tampoco puede escribir desde fuera.
+
+Emitir SQL resuelve ambas y trae una ventaja que no se buscaba: el
+emparejamiento queda versionado en git como texto legible, así que el diff
+entre dos revisiones de producto **se lee**. Aplicarlo es un comando, y es
+el mismo trato manual que ya reciben los workflows de n8n.
+
+```bash
+python import_comparativa.py                      # -> data/titanium_pairs.sql
+scp data/titanium_pairs.sql deploy@168.119.241.200:/tmp/
+ssh deploy@168.119.241.200
+docker exec -i mysql mysql -u root -p"$MYSQL_ROOT_PASSWORD" \
+  competitor_monitor < /tmp/titanium_pairs.sql
+```
 
 Reglas de lectura:
 
@@ -134,24 +157,19 @@ Reglas de lectura:
   hoja donde aparece: es un error de producto y hay que verlo, no
   resolverlo por él.
 
-Al terminar, el script **informa de lo que no cuadra** en vez de callárselo,
-consultando `products`:
+**El informe de lo que no cuadra** va al final del propio `.sql`, como tres
+`SELECT` que se ejecutan después del `COMMIT`. Así el informe se calcula
+donde están los datos y sale por pantalla al aplicarlo, sin necesitar
+herramienta aparte:
 
-```
-Importados 70 pares en 4 gamas.
+1. URLs de Titanium del Excel que no existen en el catálogo vigilado.
+2. SKUs nuestros que no están publicados en Fitness Tech ES.
+3. De esos, cuáles existen con **otro prefijo** (el caso `SE-28780` /
+   `PSE-28780`), buscando por la parte numérica del SKU.
 
-URLs de Titanium que no existen en la BD: ninguna.
-
-SKUs nuestros sin publicar en Fitness Tech ES (20):
-  SE-28780  Extensión de Cuádriceps y Femoral · Dual   ¿PSE-28780?
-  SE-28969  Press de Pecho
-  ...
-```
-
-La pista `¿PSE-28780?` sale de buscar el mismo número con otro prefijo. Es
-**solo un aviso**: el importador no corrige el dato. Corregirlo en silencio
-escondería un error que producto debe arreglar en su fichero, y la próxima
-importación volvería a traerlo.
+La tercera es **solo una pista**: nada corrige el dato. Corregirlo en
+silencio escondería un error que producto debe arreglar en su fichero, y la
+siguiente importación volvería a traerlo.
 
 ## 3. Cálculo: `build_titanium_comparison()`
 
@@ -326,13 +344,14 @@ interruptor desde la interfaz para que lo re-registre.
 
 ## Manejo de errores
 
-- **Importador con Excel ilegible o columna que falta:** aborta nombrando
-  la hoja y el rótulo que no encuentra, sin tocar la tabla. La transacción
-  garantiza que o entra todo o no entra nada.
+- **Importador con Excel ilegible o columna que falta:** aborta nombrando la
+  hoja y el rótulo que no encuentra, **sin escribir el `.sql`**. Y como el
+  fichero que sí llega a escribirse va envuelto en una transacción, al
+  aplicarlo o entra todo o no entra nada: la tabla nunca queda a medias.
 - **SKU duplicado en el Excel:** aborta indicando SKU y hoja.
-- **Emparejamientos que no resuelven:** no son un error. Se informan al
-  importar y la pantalla los pinta con su `estado`, porque son información
-  para producto, no un fallo del sistema.
+- **Emparejamientos que no resuelven:** no son un error. Salen en el informe
+  al aplicar el SQL y la pantalla los pinta con su `estado`, porque son
+  información para producto, no un fallo del sistema.
 - **Tabla `titanium_pairs` vacía** (aún no importada): la vista se pinta con
   un `.vacio` que dice cómo poblarla. El resto del panel no se entera.
 - **Correo sin cambios:** el nodo `If` corta y no se envía nada, igual que
@@ -346,8 +365,12 @@ interruptor desde la interfaz para que lo re-registre.
   baratos, la mediana con lista vacía, y que los cambios de otras tiendas y
   los de productos no emparejados no entran en la cifra de 7 días.
 - `tests/test_import_comparativa.py` — lectura del `.xlsx`: columnas por
-  rótulo, filas en blanco, SKU duplicado, columnas de precio ignoradas.
-  Sobre un fichero mínimo generado en el test, no sobre el de producción.
+  rótulo, filas en blanco, SKU duplicado, columnas de precio ignoradas, y el
+  escapado de comillas al generar el SQL. Sobre un fichero mínimo generado en
+  el test, no sobre el de producción. Los tests se saltan
+  (`pytest.importorskip`) si no hay `openpyxl`, que no está en
+  `requirements.txt` ni en la imagen: el CI no debe romperse por un script
+  de uso local.
 - Sin tests de integración contra MySQL, que sigue siendo la carencia
   conocida del repo y no se aborda aquí.
 - El correo se prueba como el semanal: el `.js` es JavaScript corriente, se
