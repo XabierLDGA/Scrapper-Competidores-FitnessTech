@@ -1,9 +1,12 @@
 # Workflows de n8n
 
-El crawler de este repo **no envia notificaciones**. El aviso lo monta n8n
-por su cuenta, y lo que hay aqui es una copia versionada de ese montaje: el
-original vive dentro del contenedor `n8n` del VPS, en una base SQLite, donde
-no hay historial ni forma de ver que cambio ni cuando.
+El crawler de este repo **no envia notificaciones**. Los avisos los monta n8n
+por su cuenta, y lo que hay aqui son copias versionadas de esos montajes: los
+originales viven dentro del contenedor `n8n` del VPS, en una base SQLite,
+donde no hay historial ni forma de ver que cambio ni cuando.
+
+Son dos: el resumen semanal de toda la competencia y el aviso diario de la
+comparativa contra Titanium.
 
 ## `notificacion-semanal`
 
@@ -33,7 +36,54 @@ Schedule Trigger (semanal, lunes)
 El export lleva las credenciales **por nombre**, nunca sus valores: los
 secretos siguen solo dentro de n8n.
 
-## El email
+## `comparativa-titanium-diaria`
+
+Cada manana a las 07:00 mira si Titanium ha movido algo en los 67 productos
+que producto ha emparejado con los nuestros (`titanium_pairs`, que puebla
+`import_comparativa.py`). Si no hay nada, no manda nada.
+
+Lo que lo distingue del semanal es que no cuenta el cambio, cuenta el
+**efecto sobre nuestra posicion**: no "Titanium bajo el Remo Sentado a
+1.595 EUR", sino "estabamos 296 EUR por debajo, ahora estamos 304 por
+encima". Ese vuelco es lo accionable para producto, y es la razon de que sea
+un correo aparte y no un bloque mas en el de los lunes.
+
+Las 07:00 y no antes: el crawl arranca a las 03:00 y ha llegado a tardar doce
+minutos. El contenedor va en `Europe/Madrid` (`TZ` y `GENERIC_TIMEZONE`), asi
+que son las 07:00 de aqui sin conversion de por medio.
+
+```
+Schedule Trigger (diario, 07:00)
+  -> Execute a SQL query   (precio, stock y bajas de 24 h, restringidos por
+  |                         JOIN a titanium_pairs; trae ademas nuestro precio
+  |                         vigente por subconsulta, para calcular la posicion)
+  -> Code in JavaScript    (arma el HTML del email)
+  -> If                    (corta si no hay nada que contar)
+  -> Send an Email
+```
+
+| Fichero | Que es |
+| --- | --- |
+| `comparativa-titanium.sql` | La consulta del nodo *Execute a SQL query* |
+| `comparativa-titanium-email.js` | El codigo del nodo *Code in JavaScript* |
+| `comparativa-titanium-diaria.workflow.json` | El workflow entero, tal como lo exporta n8n |
+
+**Ojo al rojo/verde, que aqui no significa lo mismo en todas partes**, y es a
+proposito:
+
+- Las **pildoras** siguen el semaforo comercial, como el correo semanal: que
+  Titanium **suba** es buena noticia (verde) y que baje, mala (rojo).
+- Las **cifras** de diferencia siguen el signo del numero, como la pantalla de
+  comparativa del panel: verde el positivo (somos mas caros), rojo el
+  negativo.
+
+**Un aviso sobre lo poco que va a sonar.** A 2026-09-07, de los 135 cambios
+de precio que se le han detectado a Titanium desde agosto, **ninguno** cae en
+los 67 productos emparejados: sus selectorizadas no se mueven, lo que se
+mueve es el resto de su catalogo. Que este correo no llegue casi nunca es lo
+normal, no una averia.
+
+## El email (semanal)
 
 Usa el mismo sistema visual que el panel (`static/css/panel.css`) en tema
 claro: banda negra de marca, pildoras de tipo, cifras en monoespaciada y el
