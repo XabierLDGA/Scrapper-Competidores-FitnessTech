@@ -1,11 +1,15 @@
 from datetime import date, datetime
 
+import pytest
+
 from src.metrics import (
     build_change_feed,
+    build_titanium_comparison,
     changes_since,
     build_targets,
     global_metrics,
     target_metrics,
+    titanium_metrics,
 )
 
 
@@ -444,3 +448,155 @@ def test_changes_since_con_ventana_que_no_pilla_nada():
     feed = build_change_feed(_targets_con(price_events=[_evento_precio()]))
 
     assert changes_since(feed, datetime(2027, 1, 1, 0, 0)) == []
+
+
+# ---------- comparativa Titanium ----------
+
+def _par(ft_sku="SE-1", gama="Compact vs Elite", orden=0, equivalencia="Directa",
+         titanium_url="https://ti.es/a.html"):
+    return {
+        "gama": gama,
+        "orden": orden,
+        "ft_sku": ft_sku,
+        "ft_title": "Femoral Sentado",
+        "equivalencia": equivalencia,
+        "titanium_title": "Curl Femoral Elite",
+        "titanium_url": titanium_url,
+        "observaciones": "Misma funcion",
+    }
+
+
+def _nuestro(sku="SE-1", price=1599.0):
+    return _product(price=price, competitor="Fitness Tech") | {
+        "sku": sku, "url": "https://fitnesstech.es/" + sku,
+    }
+
+
+def _suyo(url="https://ti.es/a.html", price=1395.0, available=True):
+    return _product(price=price, available=available,
+                    competitor="Titanium Strength") | {"sku": "TS-1", "url": url}
+
+
+def test_comparativa_agrupa_por_gama_respetando_el_orden_de_producto():
+    pairs = [
+        _par(ft_sku="SE-2", gama="Compact vs Elite", orden=1),
+        _par(ft_sku="SE-1", gama="Compact vs Elite", orden=0),
+        _par(ft_sku="SE-3", gama="Pro vs Black", orden=0),
+    ]
+    # Llegan ya ordenados de la BD (ORDER BY gama, orden); aqui se comprueba
+    # que la funcion no los reordena por su cuenta.
+    pairs.sort(key=lambda p: (p["gama"], p["orden"]))
+
+    gamas = build_titanium_comparison(pairs, [])
+
+    assert [g["gama"] for g in gamas] == ["Compact vs Elite", "Pro vs Black"]
+    assert [p["ft_sku"] for p in gamas[0]["pares"]] == ["SE-1", "SE-2"]
+    assert gamas[0]["slug"] == "compact-vs-elite"
+
+
+def test_comparativa_resuelve_ambos_lados_y_calcula_la_diferencia():
+    gamas = build_titanium_comparison([_par()], [_nuestro(), _suyo()])
+    par = gamas[0]["pares"][0]
+
+    assert par["estado"] == "ok"
+    assert par["ft_price"] == 1599.0
+    assert par["titanium_price"] == 1395.0
+    assert par["delta"] == 204.0
+    assert par["delta_pct"] == pytest.approx(204.0 / 1395.0 * 100)
+
+
+def test_comparativa_da_delta_negativo_cuando_somos_mas_baratos():
+    gamas = build_titanium_comparison(
+        [_par()], [_nuestro(price=1599.0), _suyo(price=1895.0)])
+
+    assert gamas[0]["pares"][0]["delta"] == -296.0
+
+
+def test_comparativa_solo_mira_fitness_tech_es():
+    # FR y PT tienen los mismos SKU y otros precios: si se colasen, el lado
+    # nuestro seria el de otro pais.
+    catalogo = [
+        _product(price=1200.0, competitor="Fitness Tech FR") | {
+            "sku": "SE-1", "url": "https://fr.example/x"},
+        _suyo(),
+    ]
+
+    par = build_titanium_comparison([_par()], catalogo)[0]["pares"][0]
+
+    assert par["estado"] == "sin_publicar"
+    assert par["ft_price"] is None
+
+
+def test_comparativa_marca_sin_equivalente_cuando_producto_no_le_encontro_rival():
+    pair = _par(equivalencia="Sin equivalente", titanium_url=None)
+
+    par = build_titanium_comparison([pair], [_nuestro()])[0]["pares"][0]
+
+    assert par["estado"] == "sin_equivalente"
+    assert par["delta"] is None
+
+
+def test_comparativa_marca_sin_publicar_cuando_el_sku_no_esta_en_la_tienda():
+    par = build_titanium_comparison([_par()], [_suyo()])[0]["pares"][0]
+
+    assert par["estado"] == "sin_publicar"
+    assert par["ft_price"] is None
+    assert par["titanium_price"] == 1395.0
+    assert par["delta"] is None
+
+
+def test_comparativa_marca_fuera_catalogo_cuando_titanium_retiro_la_maquina():
+    # get_latest_snapshots excluye los productos 'removed', asi que una URL
+    # que no aparece es una maquina que Titanium ha dado de baja.
+    par = build_titanium_comparison([_par()], [_nuestro()])[0]["pares"][0]
+
+    assert par["estado"] == "fuera_catalogo"
+    assert par["delta"] is None
+
+
+def test_comparativa_admite_dos_pares_contra_la_misma_maquina_de_titanium():
+    # SE-28972 y SE-28974 compiten los dos contra el Remo Bajo Black RX.
+    pairs = [
+        _par(ft_sku="SE-1", orden=0, titanium_url="https://ti.es/remo.html"),
+        _par(ft_sku="SE-2", orden=1, titanium_url="https://ti.es/remo.html"),
+    ]
+    catalogo = [_nuestro("SE-1", 1599.0), _nuestro("SE-2", 1899.0),
+                _suyo(url="https://ti.es/remo.html", price=2395.0)]
+
+    pares = build_titanium_comparison(pairs, catalogo)[0]["pares"]
+
+    assert [p["delta"] for p in pares] == [-796.0, -496.0]
+
+
+def test_metricas_cuentan_donde_somos_mas_caros_y_mas_baratos():
+    pairs = [_par(ft_sku="SE-1", orden=0), _par(ft_sku="SE-2", orden=1)]
+    catalogo = [
+        _nuestro("SE-1", 1599.0), _nuestro("SE-2", 1000.0),
+        _suyo(price=1395.0),
+    ]
+    gamas = build_titanium_comparison(pairs, catalogo)
+
+    m = titanium_metrics(gamas, [])
+
+    assert m["pares"] == 2
+    assert m["mas_caros"] == 1
+    assert m["mas_baratos"] == 1
+
+
+def test_metricas_con_la_tabla_vacia_no_dividen_por_cero():
+    m = titanium_metrics([], [])
+
+    assert m["pares"] == 0
+    assert m["delta_pct_mediano"] is None
+    assert m["cambios_semana"] == 0
+
+
+def test_metricas_cuentan_solo_los_cambios_de_titanium_en_productos_emparejados():
+    gamas = build_titanium_comparison([_par()], [_nuestro(), _suyo()])
+    feed = [
+        {"store": "Titanium Strength", "url": "https://ti.es/a.html"},     # cuenta
+        {"store": "Titanium Strength", "url": "https://ti.es/otra.html"},  # no emparejado
+        {"store": "Fitness Tech", "url": "https://ti.es/a.html"},          # otra tienda
+    ]
+
+    assert titanium_metrics(gamas, feed)["cambios_semana"] == 1

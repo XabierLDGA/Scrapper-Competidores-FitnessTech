@@ -251,3 +251,108 @@ def changes_since(feed: list[dict], since: datetime) -> list[dict]:
     evento en el tiempo, no hay razon para afirmar que es de hoy.
     """
     return [c for c in feed if c["when"] is not None and c["when"] >= since]
+
+
+# ---------------------------------------------------------------------------
+# Comparativa contra Titanium Strength
+#
+# El emparejamiento lo decide producto y vive en `titanium_pairs`; aqui solo
+# se cruza con el catalogo vigente para ponerle precios de hoy. Se referencia
+# a las tiendas por nombre y no por id: los ids son de la base de produccion
+# y no significan nada en un test.
+# ---------------------------------------------------------------------------
+
+# `NOSOTROS` es la tienda espanola en concreto, no el conjunto `OWN_STORES`
+# de mas arriba: la comparativa enfrenta precios de ES contra
+# titaniumstrength.es, y colar aqui la de Francia o Portugal daria un lado
+# nuestro de otro pais.
+NOSOTROS = "Fitness Tech"
+TITANIUM = "Titanium Strength"
+SIN_EQUIVALENTE = "Sin equivalente"
+
+
+def build_titanium_comparison(pairs: list[dict], catalog: list[dict]) -> list[dict]:
+    """Los pares de producto resueltos contra el catalogo vigente, agrupados
+    por gama y en el orden en que los dejo producto.
+
+    `catalog` es lo que devuelve `get_latest_snapshots()`, que el panel ya
+    consulta para las tiendas: esta pantalla no cuesta ni una consulta mas.
+    """
+    por_sku = {p["sku"]: p for p in catalog
+               if p.get("competitor") == NOSOTROS and p.get("sku")}
+    por_url = {p["url"]: p for p in catalog
+               if p.get("competitor") == TITANIUM and p.get("url")}
+
+    gamas: list[dict] = []
+    for pair in pairs:
+        nuestro = por_sku.get(pair["ft_sku"])
+        suyo = por_url.get(pair["titanium_url"]) if pair.get("titanium_url") else None
+
+        # El orden importa. `sin_equivalente` primero porque es un juicio de
+        # producto y no un hueco en los datos. Y `fuera_catalogo` antes que
+        # `sin_publicar` porque, si Titanium ha retirado la maquina, el par
+        # esta muerto tengamos nosotros SKU publicado o no.
+        if pair["equivalencia"] == SIN_EQUIVALENTE:
+            estado = "sin_equivalente"
+        elif suyo is None:
+            estado = "fuera_catalogo"
+        elif nuestro is None:
+            estado = "sin_publicar"
+        else:
+            estado = "ok"
+
+        delta = delta_pct = None
+        if estado == "ok" and nuestro.get("price") is not None \
+                and suyo.get("price") is not None:
+            delta = nuestro["price"] - suyo["price"]
+            if suyo["price"]:
+                delta_pct = delta / suyo["price"] * 100
+
+        if not gamas or gamas[-1]["gama"] != pair["gama"]:
+            gamas.append({"gama": pair["gama"],
+                          "slug": slugify(pair["gama"]),
+                          "pares": []})
+
+        gamas[-1]["pares"].append({
+            # Los nombres son los del Excel y no los de las tiendas: producto
+            # llama "Femoral Sentado" a lo que la web titula "Cuadriceps y
+            # femoral | Maquina selectorizada dual - Compact Series", y en una
+            # tabla de comparacion mandan los suyos.
+            "ft_sku": pair["ft_sku"],
+            "ft_title": pair["ft_title"],
+            "ft_url": nuestro["url"] if nuestro else None,
+            "ft_price": nuestro["price"] if nuestro else None,
+            "titanium_title": pair["titanium_title"],
+            "titanium_url": pair["titanium_url"],
+            "titanium_price": suyo["price"] if suyo else None,
+            "titanium_available": _bool_o_none(suyo["available"]) if suyo else None,
+            "equivalencia": pair["equivalencia"],
+            "observaciones": pair["observaciones"],
+            "estado": estado,
+            "delta": delta,
+            "delta_pct": delta_pct,
+        })
+
+    return gamas
+
+
+def titanium_metrics(gamas: list[dict], changes_week: list[dict]) -> dict:
+    """Las cifras de cabecera de la comparativa."""
+    pares = [p for g in gamas for p in g["pares"]]
+    resueltos = [p for p in pares if p["delta"] is not None]
+    pcts = [p["delta_pct"] for p in resueltos if p["delta_pct"] is not None]
+
+    emparejadas = {p["titanium_url"] for p in pares if p["titanium_url"]}
+    cambios = [c for c in changes_week
+               if c.get("store") == TITANIUM and c.get("url") in emparejadas]
+
+    return {
+        "pares": len(resueltos),
+        "mas_caros": sum(1 for p in resueltos if p["delta"] > 0),
+        "mas_baratos": sum(1 for p in resueltos if p["delta"] < 0),
+        # Mediana y no media, por lo mismo que en `target_metrics`: una prensa
+        # de pierna 1.096 EUR por debajo desplazaria la media hasta hacerla
+        # inutil.
+        "delta_pct_mediano": median(pcts) if pcts else None,
+        "cambios_semana": len(cambios),
+    }
