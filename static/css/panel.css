@@ -246,6 +246,16 @@ input, button { font: inherit; }
 .navitem--rival .navitem__dot.is-live { background: #f19b93; }
 .navitem--rival .navitem__count { color: rgba(255, 255, 255, 0.45); }
 
+/* Binom en gris. El rojo de la competencia identificaba a Titanium mientras
+   fue el unico competidor de la lista; con dos, dejarlos del mismo color
+   obliga a leer el nombre para saber en cual estas. Se distingue por el
+   `data-view` que la entrada ya lleva, que es su identificador estable. */
+.navitem[data-view="tienda/binom-fitness"] { background: rgba(255, 255, 255, 0.14); }
+.navitem[data-view="tienda/binom-fitness"].is-active { background: rgba(255, 255, 255, 0.3); }
+.navitem[data-view="tienda/binom-fitness"] .navitem__dot.is-live {
+  background: rgba(255, 255, 255, 0.75);
+}
+
 /* Es el rotulo mas largo del menu: mejor que envuelva a que se corte en
    "Comparativa Tit...". La regla venia del letrero "Pronto" que ocupaba
    este sitio; se conserva ahora que la entrada lleva de verdad a algun
