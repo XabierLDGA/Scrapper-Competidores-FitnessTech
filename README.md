@@ -23,7 +23,10 @@ pip install -r requirements.txt
 Titanium Strength (`titaniumstrength.es`) está detrás de Cloudflare y
 bloquea las peticiones HTTP normales por huella TLS, así que ese competidor
 se descarga con un navegador Chromium real (Playwright) en vez de `httpx`.
-Tras instalar las dependencias, descarga el binario del navegador una vez:
+No hay que configurarlo: el crawler prueba primero la vía barata y solo
+abre el navegador con las tiendas que lo necesitan (Binom, que también es
+Magento, no lo necesita). Tras instalar las dependencias, descarga el
+binario del navegador una vez:
 
 ```bash
 playwright install chromium
@@ -71,9 +74,24 @@ competitor_id = db.add_competitor(
     website_url="https://garmin.com",
     product_api_url="https://garmin.com/products.json",  # opcional, solo si usa Shopify
     country="ES",
+    platform="magento",  # solo si es Magento; None para Shopify/HTML
 )
 print(f"Competidor anadido: ID {competitor_id}")
 ```
+
+**Al dar de alta uno nuevo, retrasa el `first_seen` de su primera tanda**
+fuera de la ventana de 7 dias:
+
+```sql
+UPDATE products SET first_seen = CURDATE() - INTERVAL 8 DAY
+WHERE competitor_id = <id> AND first_seen = CURDATE();
+```
+
+Su catalogo entero entra el mismo dia, y tanto el panel como el correo
+semanal de n8n miden las altas por `first_seen`: sin esto, el lunes
+siguiente el correo sale con cientos de "productos nuevos" que no son
+novedades, es que empezamos a mirar (a Titanium le paso con 866 el
+2026-08-05). Con Binom fueron ~700.
 
 ### 5. Ejecutar
 
@@ -94,7 +112,7 @@ Flask (`debug=True`) pensado solo para uso local, no para producción — lee
 directamente de MySQL en cada recarga de pagina, no tiene autenticacion.
 
 El panel es una pagina unica con dos vistas. La de **cambios** es la
-portada: todo lo que se ha movido en las cuatro tiendas en las ultimas 24
+portada: todo lo que se ha movido en las cinco tiendas en las ultimas 24
 horas —altas, bajas, subidas y bajadas de precio y entradas y salidas de
 stock— en una sola bandeja ordenada de mas reciente a mas antiguo, con
 filtros por tienda y por tipo. La vista **por tienda** tiene dos pestanas,
@@ -194,11 +212,16 @@ docker compose down -v    # borra tambien la base de datos
 - `src/crawler.py` — Descarga datos, con tres caminos segun `platform`
   (elegido en `crawl_competitor_products` de `main.py`): Shopify
   `/products.json` (con fallback a scraping HTML generico si no hay
-  `product_api_url`), Magento via Playwright (`crawl_magento_categories`,
-  para sitios detras de Cloudflare), o el fallback HTML generico. Para
+  `product_api_url`), Magento recorriendo sus categorias
+  (`crawl_magento_categories`), o el fallback HTML generico. Para
   Shopify tambien cruza las colecciones de la tienda cuyo titulo sugiere
   una linea de producto ("series"/"select") para rellenar el campo `series`
   de cada producto — no sale en el dashboard, pero si en los exports Excel.
+  El camino Magento se adapta solo a cada tienda en dos cosas: usa `httpx`
+  y solo abre el navegador si la tienda rechaza las peticiones normales
+  (Titanium si, Binom no), y pide las paginas con el mayor tamano que
+  ofrezca el selector de la propia tienda (`all` en Binom, 48 en Titanium),
+  que es lo que hace que anadir Binom cueste ~80 peticiones y no ~200.
 - `src/normalizer.py` — Convierte productos crawleados a un formato comun y
   descarta los que no tienen datos minimos (id, titulo, precio >= 0).
 - `src/detector.py` — Unica fuente de verdad para "es nuevo", "cambio de
@@ -225,7 +248,7 @@ docker compose down -v    # borra tambien la base de datos
   > reiniciar el servidor (los de CSS/JS si, son ficheros estaticos).
 - `src/metrics.py` — Agregados derivados del panel (disponibilidad, % con
   precio rebajado, mediana de precio), `build_change_feed`, que aplana los
-  cuatro tipos de evento de las cuatro tiendas en la bandeja unica de la
+  cuatro tipos de evento de todas las tiendas en la bandeja unica de la
   portada, y `build_titanium_comparison` / `titanium_metrics`, que resuelven
   el emparejamiento de producto contra el catalogo vigente para la pantalla
   de comparativa. Funciones puras sobre las filas que devuelve `Database`: ni BD

@@ -301,6 +301,49 @@ def test_parse_magento_category_empty_html_returns_empty_list():
     assert crawler._parse_magento_category("<html><body>sin productos</body></html>") == []
 
 
+NAV_HTML = """
+<nav class="navigation">
+    <a href="/cat-a">Cat A</a>
+    <a href="/cat-b">Cat B</a>
+</nav>
+"""
+
+
+def product_li(sku, price=100):
+    return f"""
+    <li class="item product product-item">
+        <div class="product-item-info">
+            <a href="https://example.com/{sku}.html"
+               class="product photo product-item-photo"
+               data-id="{sku}" data-name="Producto {sku}"></a>
+            <div class="price-box price-final_price">
+                <span id="product-price-{sku}" data-price-amount="{price}"
+                      data-price-type="finalPrice" class="price-wrapper"></span>
+            </div>
+            <p class="availability in-stock">En Stock</p>
+        </div>
+    </li>
+    """
+
+
+def limiter_select(*values):
+    """El selector de "productos por pagina" de la barra de Magento, que es
+    de donde el crawler saca que tamanos acepta la tienda."""
+    options = "".join(f'<option value="{v}">{v}</option>' for v in values)
+    return f'<select class="limiter-options">{options}</select>'
+
+
+def magento_pages(responses):
+    """Sirve un diccionario de URL -> HTML y anota que se ha pedido."""
+    pedidas = []
+
+    async def fetch(url):
+        pedidas.append(url)
+        return responses.get(url)
+
+    return fetch, pedidas
+
+
 @pytest.mark.asyncio
 async def test_crawl_magento_categories_paginates_and_dedupes(monkeypatch):
     """Dos categorias que comparten un producto (tipico padre/hija): el
@@ -308,41 +351,15 @@ async def test_crawl_magento_categories_paginates_and_dedupes(monkeypatch):
     llega vacia y corta la paginacion); la B tiene solo 1."""
     crawler = Crawler()
 
-    nav_html = """
-    <nav class="navigation">
-        <a href="/cat-a">Cat A</a>
-        <a href="/cat-b">Cat B</a>
-    </nav>
-    """
-
-    def product_li(sku, price):
-        return f"""
-        <li class="item product product-item">
-            <div class="product-item-info">
-                <a href="https://example.com/{sku}.html"
-                   class="product photo product-item-photo"
-                   data-id="{sku}" data-name="Producto {sku}"></a>
-                <div class="price-box price-final_price">
-                    <span id="product-price-{sku}" data-price-amount="{price}"
-                          data-price-type="finalPrice" class="price-wrapper"></span>
-                </div>
-                <p class="availability in-stock">En Stock</p>
-            </div>
-        </li>
-        """
-
-    responses = {
-        "https://example.com": nav_html,
-        "https://example.com/cat-a": f"<ol>{product_li('SKU-1', 100)}</ol>",
+    fetch, _ = magento_pages({
+        "https://example.com": NAV_HTML,
+        "https://example.com/cat-a": f"<ol>{product_li('SKU-1')}</ol>",
         "https://example.com/cat-a?p=2": "<ol></ol>",
-        "https://example.com/cat-b": f"<ol>{product_li('SKU-1', 100)}{product_li('SKU-2', 200)}</ol>",
+        "https://example.com/cat-b": f"<ol>{product_li('SKU-1')}{product_li('SKU-2', 200)}</ol>",
         "https://example.com/cat-b?p=2": "<ol></ol>",
-    }
-
-    async def mock_fetch_rendered(url):
-        return responses.get(url)
-
-    monkeypatch.setattr(crawler, "fetch_rendered", mock_fetch_rendered)
+    })
+    monkeypatch.setattr(crawler, "_probe_plain_http", fetch)
+    monkeypatch.setattr(crawler, "fetch", fetch)
 
     products = await crawler.crawl_magento_categories("https://example.com")
 
@@ -354,11 +371,166 @@ async def test_crawl_magento_categories_paginates_and_dedupes(monkeypatch):
 async def test_crawl_magento_categories_home_fetch_fails_returns_empty(monkeypatch):
     crawler = Crawler()
 
-    async def mock_fetch_rendered(url):
+    async def no_hay_nada(url):
         return None
 
-    monkeypatch.setattr(crawler, "fetch_rendered", mock_fetch_rendered)
+    monkeypatch.setattr(crawler, "_probe_plain_http", no_hay_nada)
+    monkeypatch.setattr(crawler, "fetch_rendered", no_hay_nada)
 
     products = await crawler.crawl_magento_categories("https://example.com")
 
     assert products == []
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_no_abre_navegador_si_la_tienda_responde(monkeypatch):
+    """Binom sirve su catalogo por HTTP normal, asi que no debe lanzarse
+    Chromium: cuesta cientos de MB y segundos por pagina, y el contenedor
+    del crawler tiene el techo de memoria puesto por eso."""
+    crawler = Crawler()
+
+    fetch, _ = magento_pages({
+        "https://example.com": NAV_HTML,
+        "https://example.com/cat-a": f"<ol>{product_li('SKU-1')}</ol>",
+        "https://example.com/cat-a?p=2": "<ol></ol>",
+        "https://example.com/cat-b": f"<ol>{product_li('SKU-2')}</ol>",
+        "https://example.com/cat-b?p=2": "<ol></ol>",
+    })
+    monkeypatch.setattr(crawler, "_probe_plain_http", fetch)
+    monkeypatch.setattr(crawler, "fetch", fetch)
+
+    async def prohibido(url):
+        raise AssertionError("no deberia hacer falta navegador")
+
+    monkeypatch.setattr(crawler, "fetch_rendered", prohibido)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert {p["sku"] for p in products} == {"SKU-1", "SKU-2"}
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_sube_a_navegador_si_la_tienda_bloquea(monkeypatch):
+    """Titanium esta detras de Cloudflare y devuelve 403 a httpx por huella
+    TLS: ahi si hay que pagar el navegador."""
+    crawler = Crawler()
+
+    async def bloqueado(url):
+        return None
+
+    fetch, _ = magento_pages({
+        "https://example.com": NAV_HTML,
+        "https://example.com/cat-a": f"<ol>{product_li('SKU-1')}</ol>",
+        "https://example.com/cat-a?p=2": "<ol></ol>",
+        "https://example.com/cat-b": "<ol></ol>",
+    })
+    monkeypatch.setattr(crawler, "_probe_plain_http", bloqueado)
+    monkeypatch.setattr(crawler, "fetch_rendered", fetch)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert {p["sku"] for p in products} == {"SKU-1"}
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_sube_a_navegador_si_la_respuesta_no_trae_menu(monkeypatch):
+    """Un 200 no basta: Cloudflare tambien contesta con una pagina de espera
+    que no lleva menu. Si no hay categorias que recorrer, se reintenta con
+    navegador antes de dar la tienda por vacia."""
+    crawler = Crawler()
+
+    async def pagina_de_espera(url):
+        return "<html><body>Just a moment...</body></html>"
+
+    fetch, _ = magento_pages({
+        "https://example.com": NAV_HTML,
+        "https://example.com/cat-a": f"<ol>{product_li('SKU-1')}</ol>",
+        "https://example.com/cat-a?p=2": "<ol></ol>",
+        "https://example.com/cat-b": "<ol></ol>",
+    })
+    monkeypatch.setattr(crawler, "_probe_plain_http", pagina_de_espera)
+    monkeypatch.setattr(crawler, "fetch_rendered", fetch)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert {p["sku"] for p in products} == {"SKU-1"}
+
+
+def test_best_page_size_prefiere_all():
+    crawler = Crawler()
+    html = limiter_select("12", "24", "36", "all")
+    assert crawler._best_page_size(html) == "all"
+
+
+def test_best_page_size_coge_el_mayor_numerico_si_no_hay_all():
+    crawler = Crawler()
+    html = limiter_select("6", "12", "24", "48")
+    assert crawler._best_page_size(html) == "48"
+
+
+def test_best_page_size_sin_selector_devuelve_none():
+    crawler = Crawler()
+    assert crawler._best_page_size("<html><body>sin barra</body></html>") is None
+
+
+def test_magento_page_url_respeta_la_query_que_ya_trae_la_categoria():
+    """Algunas categorias salen del menu con parametros propios
+    (`?view_landing=true`); pegarles otro '?' daria una URL invalida."""
+    crawler = Crawler()
+
+    assert crawler._magento_page_url("https://x/cat", 1, None) == "https://x/cat"
+    assert crawler._magento_page_url("https://x/cat", 2, None) == "https://x/cat?p=2"
+    assert crawler._magento_page_url("https://x/cat", 1, "all") == \
+        "https://x/cat?product_list_limit=all"
+    assert crawler._magento_page_url("https://x/cat?view_landing=true", 2, "48") == \
+        "https://x/cat?view_landing=true&p=2&product_list_limit=48"
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_corta_cuando_la_pagina_se_repite(monkeypatch):
+    """Pedir una pagina que no existe no siempre devuelve vacio: con
+    `product_list_limit=all` Binom sirve otra vez la misma, asi que cortar
+    por "pagina vacia" dejaria el bucle dando vueltas hasta el tope."""
+    crawler = Crawler()
+    pagina = f'<ol>{product_li("SKU-1")}</ol>{limiter_select("12", "all")}'
+
+    fetch, pedidas = magento_pages({
+        "https://example.com": NAV_HTML,
+        "https://example.com/cat-a": pagina,
+        "https://example.com/cat-a?p=2": pagina,
+        "https://example.com/cat-a?p=3": pagina,
+        "https://example.com/cat-b?product_list_limit=all": pagina,
+    })
+    monkeypatch.setattr(crawler, "_probe_plain_http", fetch)
+    monkeypatch.setattr(crawler, "fetch", fetch)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert {p["sku"] for p in products} == {"SKU-1"}
+    assert pedidas.count("https://example.com/cat-a?p=3") == 0
+
+
+@pytest.mark.asyncio
+async def test_crawl_magento_aplica_el_tamano_de_pagina_desde_la_categoria_siguiente(monkeypatch):
+    """El tamano se lee de la primera categoria y se usa desde la segunda.
+    Aplicarlo a mitad de una categoria se saltaria productos: con limite 48
+    la pagina 2 empieza en el articulo 49, no en el 25."""
+    crawler = Crawler()
+    barra = limiter_select("12", "24", "48")
+
+    fetch, pedidas = magento_pages({
+        "https://example.com": NAV_HTML,
+        "https://example.com/cat-a": f"<ol>{product_li('SKU-1')}</ol>{barra}",
+        "https://example.com/cat-a?p=2": f"<ol>{product_li('SKU-2')}</ol>{barra}",
+        "https://example.com/cat-a?p=3": "<ol></ol>",
+        "https://example.com/cat-b?product_list_limit=48": f"<ol>{product_li('SKU-3')}</ol>{barra}",
+        "https://example.com/cat-b?p=2&product_list_limit=48": "<ol></ol>",
+    })
+    monkeypatch.setattr(crawler, "_probe_plain_http", fetch)
+    monkeypatch.setattr(crawler, "fetch", fetch)
+
+    products = await crawler.crawl_magento_categories("https://example.com")
+
+    assert {p["sku"] for p in products} == {"SKU-1", "SKU-2", "SKU-3"}
+    assert "https://example.com/cat-a?p=2" in pedidas
+    assert "https://example.com/cat-a?p=2&product_list_limit=48" not in pedidas

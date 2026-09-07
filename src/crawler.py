@@ -308,6 +308,58 @@ class Crawler:
             await self._playwright.stop()
             self._playwright = None
 
+    async def _probe_plain_http(self, url: str) -> Optional[str]:
+        """Una sola peticion httpx, sin reintentos, para decidir si una tienda
+        necesita navegador.
+
+        Reintentar no aporta nada: si Cloudflare bloquea por huella TLS lo
+        hace las tres veces, y solo llenaria el log de avisos en cada crawl.
+        """
+        async with httpx.AsyncClient(timeout=self.timeout, headers=self.headers) as client:
+            try:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                return resp.text
+            except httpx.HTTPError:
+                return None
+
+    def _best_page_size(self, html: str) -> Optional[str]:
+        """El mayor tamano de pagina que ofrece el selector de la propia tienda.
+
+        Magento solo acepta los valores de ese selector: pedir cualquier otro
+        (`product_list_limit=200`) lo ignora y devuelve la pagina por defecto,
+        asi que el valor se lee de la pagina en vez de fijarlo a mano. Binom
+        ofrece 'all' -su catalogo entero en una peticion- y Titanium llega a
+        48, la mitad de peticiones que con las 24 de por defecto.
+        """
+        parser = HTMLParser(html)
+        values = {
+            option.attributes.get("value")
+            for select in parser.css("select.limiter-options")
+            for option in select.css("option")
+        }
+        if "all" in values:
+            return "all"
+        numeric = [int(v) for v in values if v and v.isdigit()]
+        return str(max(numeric)) if numeric else None
+
+    def _magento_page_url(self, category_url: str, page_num: int,
+                          page_size: Optional[str]) -> str:
+        """URL de una pagina de categoria, respetando la query que ya traiga.
+
+        Algunas categorias salen del menu con parametros propios
+        (`?view_landing=true`), asi que el separador no puede ser siempre '?'.
+        """
+        params = []
+        if page_num > 1:
+            params.append(f"p={page_num}")
+        if page_size:
+            params.append(f"product_list_limit={page_size}")
+        if not params:
+            return category_url
+        separator = "&" if "?" in category_url else "?"
+        return category_url + separator + "&".join(params)
+
     def _discover_magento_categories(self, html: str, base_url: str) -> list[str]:
         """Extrae las URLs de categoria del menu principal de Magento.
 
@@ -387,33 +439,61 @@ class Crawler:
         return products
 
     async def crawl_magento_categories(self, base_url: str, max_pages_per_category: int = 20) -> list[dict]:
-        """Descarga el catalogo completo de una tienda Magento detras de
-        Cloudflare, via Playwright.
+        """Descarga el catalogo completo de una tienda Magento.
 
         Descubre las categorias desde el menu principal y pagina cada una
-        hasta que una pagina no devuelve productos. Los productos se
+        hasta que deja de aparecer producto nuevo. Los productos se
         deduplican por sku porque las categorias padre/hija listan los
-        mismos productos.
+        mismos.
+
+        La descarga va por httpx y solo sube a navegador real si la tienda
+        no acepta peticiones normales: Titanium esta detras de Cloudflare y
+        lo necesita, Binom no. Lanzar Chromium donde no hace falta cuesta
+        cientos de MB y varios segundos por pagina, asi que se prueba
+        primero la via barata.
         """
-        home_html = await self.fetch_rendered(base_url)
+        home_html = await self._probe_plain_http(base_url)
+        fetch = self.fetch
+        if not home_html or not self._discover_magento_categories(home_html, base_url):
+            logger.info(f"{base_url} no se deja leer por HTTP normal, se usa navegador")
+            fetch = self.fetch_rendered
+            home_html = await fetch(base_url)
         if not home_html:
             return []
 
         category_urls = self._discover_magento_categories(home_html, base_url)
         products_by_sku: dict[str, dict] = {}
+        # El tamano de pagina se descubre leyendo la primera categoria y se
+        # aplica a partir de la siguiente: cambiarlo a mitad de una categoria
+        # se saltaria productos, porque con limite 48 la pagina 2 empieza en
+        # el articulo 49 y no en el 25.
+        discovered_page_size: Optional[str] = None
 
         for category_url in category_urls:
+            page_size = discovered_page_size
+            seen_in_category: set[str] = set()
+
             for page_num in range(1, max_pages_per_category + 1):
-                page_url = category_url if page_num == 1 else f"{category_url}?p={page_num}"
-                html = await self.fetch_rendered(page_url)
+                html = await fetch(self._magento_page_url(category_url, page_num, page_size))
                 if not html:
                     break
 
+                if discovered_page_size is None:
+                    discovered_page_size = self._best_page_size(html)
+
                 items = self._parse_magento_category(html)
-                if not items:
+                # Se corta por sku repetido y no por pagina vacia: pedir una
+                # pagina que no existe no siempre da vacio, Binom devuelve
+                # otra vez la ultima y la paginacion no terminaria nunca.
+                new_items = [item for item in items if item["sku"] not in seen_in_category]
+                if not new_items:
                     break
 
-                for item in items:
+                for item in new_items:
+                    seen_in_category.add(item["sku"])
                     products_by_sku[item["sku"]] = item
+
+                if page_size == "all":
+                    break
 
         return list(products_by_sku.values())

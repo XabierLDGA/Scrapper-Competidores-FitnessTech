@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 async def crawl_competitor_products(crawler: Crawler, competitor: dict) -> tuple[list[dict], str]:
-    """Elige la estrategia de descarga segun el competidor: Magento detras
-    de Cloudflare (Playwright), Shopify (/products.json), o HTML generico
-    como ultimo recurso."""
+    """Elige la estrategia de descarga segun el competidor: Magento
+    (recorriendo sus categorias), Shopify (/products.json), o HTML generico
+    como ultimo recurso. Si la tienda Magento necesita navegador real lo
+    decide el propio crawler, no hace falta configurarlo por competidor."""
     if competitor.get("platform") == "magento":
         products = await crawler.crawl_magento_categories(competitor["website_url"])
         return products, "magento"
