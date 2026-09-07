@@ -703,7 +703,11 @@ input, button { font: inherit; }
    regla de arriba. */
 .tabla--vs td.vs-delta { white-space: nowrap; }
 
-.vs-th-delta { text-align: center; }
+/* Con `.tabla--vs th.` delante y no `.vs-th-delta` a secas: `.tabla th`
+   alinea a la izquierda con especificidad (0,1,1), que le gana a una clase
+   sola (0,1,0), y el rotulo se quedaba 84px a la izquierda de las cifras que
+   encabeza. */
+.tabla--vs th.vs-th-delta { text-align: center; }
 
 .vs-lado { display: flex; flex-direction: column; gap: 3px; }
 
