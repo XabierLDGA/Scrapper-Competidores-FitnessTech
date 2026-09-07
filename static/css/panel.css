@@ -582,6 +582,10 @@ input, button { font: inherit; }
   border-radius: 999px;
   font-size: 0.75rem;
   white-space: nowrap;
+  /* Explicita y no heredada: en la columna Detalle la pildora vive dentro
+     de una celda monoespaciada, y sin esto la misma etiqueta se veria de
+     dos formas distintas segun la tabla. */
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
 }
 
 .chip { background: var(--accent-wash); color: var(--accent-ink); }

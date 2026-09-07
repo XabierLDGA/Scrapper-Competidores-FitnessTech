@@ -45,6 +45,18 @@
   <span class="pildora pildora--{{ tono }}">{{ etiqueta }}</span>
 {%- endmacro %}
 
+{#  Disponibilidad. Un solo sitio para las dos tablas que la pintan -el
+    catalogo y la columna Detalle de los cambios de stock- para que no se
+    queden con aspectos distintos. Verde disponible y rojo agotado siguen el
+    semaforo comercial del resto del panel, no el signo de nada. #}
+{% macro estado(disponible) -%}
+  {%- if disponible -%}
+    <span class="pildora pildora--down">Disponible</span>
+  {%- else -%}
+    <span class="pildora pildora--up">Agotado</span>
+  {%- endif -%}
+{%- endmacro %}
+
 {#  Columna Detalle. Una sola regla para los precios: si hay precio anterior
     se pinta "antes -> ahora" con su porcentaje; si no, el precio suelto
     (que es el caso de las altas). #}
@@ -57,9 +69,9 @@
       {{ c.new_price | eur }}
     {%- endif -%}
   {%- elif c.kind == 'stock' -%}
-    {{ 'Disponible' if c.was_available else 'Agotado' }}
+    {{ estado(c.was_available) }}
     <span class="flecha" aria-hidden="true">→</span>
-    {{ 'Disponible' if c.now_available else 'Agotado' }}
+    {{ estado(c.now_available) }}
   {%- else -%}
     Visto {{ c.last_seen | fecha }}
   {%- endif -%}
@@ -471,8 +483,7 @@
                   data-busca="{{ (p.title ~ ' ' ~ (p.sku or '')) | lower }}">
                 <td class="t-sku">{{ p.sku or "—" }}</td>
                 <td class="t-nombre">{{ producto(p) }}</td>
-                <td>{% if p.available %}<span class="pildora pildora--down">Disponible</span>
-                    {% else %}<span class="pildora pildora--up">Agotado</span>{% endif %}</td>
+                <td>{{ estado(p.available) }}</td>
                 <td class="t-num t-detalle">{{ p.price | eur }}</td>
                 <td class="t-num t-cuando">{{ p.captured_at | fecha }}</td>
               </tr>
