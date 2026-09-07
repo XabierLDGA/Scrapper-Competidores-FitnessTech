@@ -35,6 +35,49 @@
   pintarHora();
   setInterval(pintarHora, 20000);
 
+  // ---------- sincronizar ----------
+  // El POST lanza el crawl dentro de la propia peticion y no responde hasta
+  // que termina, que son minutos. Sin avisar de nada, el boton se queda como
+  // estaba y se acaba pulsando otra vez creyendo que no ha llegado.
+  var formSync = document.querySelector("[data-sync]");
+
+  if (formSync) {
+    var botonSync = formSync.querySelector(".btn-sync");
+    var rotulo = formSync.querySelector("[data-rotulo]");
+    var rotuloQuieto = rotulo ? rotulo.textContent : "";
+    var sincronizando = false;
+
+    function marcarSync(activo) {
+      sincronizando = activo;
+      botonSync.classList.toggle("is-busy", activo);
+      botonSync.disabled = activo;
+      if (activo) botonSync.setAttribute("aria-busy", "true");
+      else botonSync.removeAttribute("aria-busy");
+      if (rotulo) {
+        rotulo.textContent = activo
+          ? botonSync.getAttribute("data-ocupado")
+          : rotuloQuieto;
+      }
+    }
+
+    // Se pinta en el propio submit, que a esas alturas el envio ya esta en
+    // marcha y apagar el boton no lo cancela. Y tiene que quedar hecho aqui:
+    // mientras se espera la respuesta el hilo principal deja de atender lo
+    // aplazado (ni requestAnimationFrame ni un setTimeout con retardo
+    // llegan a correr), asi que lo que no se pinte ahora no se pinta. El
+    // giro del icono sigue porque es animacion CSS y va por el compositor.
+    formSync.addEventListener("submit", function (e) {
+      if (sincronizando) { e.preventDefault(); return; }
+      marcarSync(true);
+    });
+
+    // Volver atras restaura la pagina tal como se dejo, con el boton apagado
+    // y ya sin nada corriendo detras.
+    window.addEventListener("pageshow", function (e) {
+      if (e.persisted) marcarSync(false);
+    });
+  }
+
   // ---------- numeros en formato espanol ----------
   // Punto para los miles, coma para los decimales. Se usa al repintar las
   // cifras de cabecera cuando se filtra por tienda, que es lo unico que el

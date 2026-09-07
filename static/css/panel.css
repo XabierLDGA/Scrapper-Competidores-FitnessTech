@@ -352,6 +352,21 @@ input, button { font: inherit; }
 }
 .btn-sync:hover { filter: brightness(1.07); }
 
+/* El crawl corre dentro de la peticion y tarda minutos, asi que el boton se
+   queda apagado hasta que el servidor responde y recarga la pagina. El icono
+   gira porque en pantalla estrecha el rotulo esta oculto (regla del bloque
+   10) y sin el no quedaria ninguna senal de que sigue en marcha. */
+.btn-sync.is-busy,
+.btn-sync.is-busy:hover {
+  filter: none;
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.btn-sync.is-busy svg { animation: girar 0.9s linear infinite; }
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
 /* ---------- 5  Avisos ---------------------------------------------------- */
 
 .avisos { display: flex; flex-direction: column; gap: 8px; }
@@ -676,6 +691,8 @@ input, button { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
