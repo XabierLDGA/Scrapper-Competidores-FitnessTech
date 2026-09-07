@@ -411,6 +411,12 @@ class Database:
 
         Sin precios: los pone `build_titanium_comparison` cruzando esto con el
         catalogo vigente. Se puebla con `import_comparativa.py`.
+
+        `ORDER BY id` y no `ORDER BY gama, orden`: el importador borra la tabla
+        entera y reinserta hoja por hoja, asi que el id reproduce el orden del
+        Excel de producto, que va de la gama de entrada a la alta (Compact,
+        Pro, Advanced, Pro Tech). Ordenar por `gama` lo alfabetiza y pone
+        Advanced la primera, que no dice nada.
         """
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
@@ -419,7 +425,7 @@ class Database:
                     SELECT id, gama, orden, ft_sku, ft_title, equivalencia,
                            titanium_title, titanium_url, observaciones
                     FROM titanium_pairs
-                    ORDER BY gama, orden
+                    ORDER BY id
                 """)
                 return cursor.fetchall()
             finally:

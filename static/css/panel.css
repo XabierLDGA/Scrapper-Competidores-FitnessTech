@@ -690,7 +690,18 @@ input, button { font: inherit; }
 .tabla--vs { table-layout: fixed; }
 .tabla--vs th:first-child,
 .tabla--vs th:last-child { width: 41%; }
-.tabla--vs td { vertical-align: top; }
+
+/* `.tabla td` pone `white-space: nowrap`, que en la bandeja de cambios es lo
+   que se quiere: un precio o una fecha no deben partirse por la mitad. Aqui
+   hay prosa -nombres largos de maquina y las observaciones de producto-, y
+   sin esto el texto no envuelve, estira la tabla por encima de su caja y
+   aparece un scroll horizontal donde no toca. */
+.tabla--vs td { vertical-align: top; white-space: normal; }
+
+/* La cifra de la diferencia si sigue entera: "+204,00 EUR" partido en dos
+   lineas no se lee. Con `td.` delante para ganarle en especificidad a la
+   regla de arriba. */
+.tabla--vs td.vs-delta { white-space: nowrap; }
 
 .vs-th-delta { text-align: center; }
 
@@ -729,7 +740,6 @@ input, button { font: inherit; }
 .vs-delta {
   text-align: center;
   font-family: "IBM Plex Mono", monospace;
-  white-space: nowrap;
   color: var(--ink-3);
 }
 .vs-delta b { display: block; font-weight: 500; font-size: 0.813rem; }

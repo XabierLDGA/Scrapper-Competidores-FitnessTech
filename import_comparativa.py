@@ -215,11 +215,15 @@ def main() -> int:
         print(f"  {gama}: {sum(1 for p in pares if p['gama'] == gama)}")
     # La contrasena se expande dentro del contenedor: fuera no existe.
     remoto = f"/tmp/{args.salida.name}"
+    comilla = "'\"'\"'"
     print("\nAplicalo con:")
     print(f"  scp {args.salida} deploy@168.119.241.200:/tmp/")
-    print("  ssh deploy@168.119.241.200 'docker exec -i mysql sh -c "
-          "'\"'\"'mysql -u root -p\"$MYSQL_ROOT_PASSWORD\" competitor_monitor'\"'\"' "
-          f"< {remoto}'")
+    print(f"  ssh deploy@168.119.241.200 'docker exec -i mysql sh -c {comilla}"
+          f'mysql -u root -p"$MYSQL_ROOT_PASSWORD" '
+          f"--default-character-set=utf8mb4 competitor_monitor{comilla} < {remoto}'")
+    print("\n  El --default-character-set NO es opcional: el cliente mysql del")
+    print("  contenedor arranca en latin1, y sin el las tildes entran dobles")
+    print("  ('ExtensiA³n de CuA¡driceps' en vez de 'Extension de Cuadriceps').")
     return 0
 
 

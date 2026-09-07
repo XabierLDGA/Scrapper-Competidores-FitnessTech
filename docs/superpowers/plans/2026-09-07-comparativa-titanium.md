@@ -581,9 +581,18 @@ scp migrations/007_titanium_pairs.sql data/titanium_pairs.sql deploy@168.119.241
 ssh deploy@168.119.241.200
 docker exec -i mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"' \
   < /tmp/007_titanium_pairs.sql
-docker exec -i mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" competitor_monitor' \
+docker exec -i mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" \
+  --default-character-set=utf8mb4 competitor_monitor' \
   < /tmp/titanium_pairs.sql
 ```
+
+**`--default-character-set=utf8mb4` no es opcional.** El cliente `mysql` del
+contenedor arranca en `latin1`, así que sin él lee el fichero (UTF-8) como
+Latin-1 y guarda `Extensión` como `ExtensiÃ³n`. Comprobado en carne propia el
+2026-09-07. Y para verificarlo después, `LIKE '%Ã%'` **no vale**: la colación
+`utf8mb4_unicode_ci` es insensible a acentos y casa con cualquier `a`, así que
+dice que las 70 filas están mal cuando no lo está ninguna. Hay que comparar en
+binario con `CONVERT(... USING binary)`.
 
 Con **root** y no con el `DB_USER` del `.env` (que es `scraper`, sin permiso
 para crear tablas), y expandiendo la contraseña **dentro** del contenedor,
