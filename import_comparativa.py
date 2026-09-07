@@ -47,6 +47,21 @@ COLUMNAS = {
 CAMPOS = ["gama", "orden", "ft_sku", "ft_title", "equivalencia",
           "titanium_title", "titanium_url", "observaciones"]
 
+# Orden de las gamas en la pantalla, que no es el del Excel. Producto pone
+# Advanced la tercera, pero esa gama todavia no esta publicada en nuestra
+# tienda: sus 19 filas salen con nuestro lado vacio y abrian la comparativa
+# con un bloque entero sin precios. Va al final, y arriba quedan las tres que
+# se pueden comparar de verdad.
+#
+# Una hoja que no aparezca aqui se coloca detras, en el orden del Excel: si
+# producto renombra o anade una gama, el importador no revienta ni la pierde.
+ORDEN_GAMAS = [
+    "Compact vs Elite",
+    "Pro vs Black",
+    "Pro Tech vs Genesis",
+    "Advanced vs Black RX",
+]
+
 
 def _texto(valor):
     """Celda -> str limpio, o None si esta vacia. Las celdas del Excel llegan
@@ -107,6 +122,20 @@ def leer_pares(ruta) -> list[dict]:
                     par[campo] = _texto(fila[i]) if i < len(fila) else None
             pares.append(par)
             orden += 1
+
+    # El orden en que salen de aqui es el orden en que se insertan, y con el
+    # `ORDER BY id` de `get_titanium_pairs()` es tambien el orden en que se
+    # pintan. Las filas de cada gama no se tocan: solo se recolocan las gamas
+    # enteras.
+    hojas = list(dict.fromkeys(p["gama"] for p in pares))
+    en_el_excel = {gama: i for i, gama in enumerate(hojas)}
+    en_la_pantalla = {gama: i for i, gama in enumerate(ORDEN_GAMAS)}
+    # Las que ORDEN_GAMAS no nombra van detras, entre ellas en el orden del
+    # Excel: el desempate por `en_el_excel` es lo que se lo garantiza.
+    hojas.sort(key=lambda g: (en_la_pantalla.get(g, len(ORDEN_GAMAS)), en_el_excel[g]))
+
+    final = {gama: i for i, gama in enumerate(hojas)}
+    pares.sort(key=lambda p: (final[p["gama"]], p["orden"]))
 
     return pares
 
@@ -209,10 +238,12 @@ def main() -> int:
     args.salida.parent.mkdir(parents=True, exist_ok=True)
     args.salida.write_text(generar_sql(pares), encoding="utf-8")
 
-    gamas = {p["gama"] for p in pares}
+    # En el orden en que van a salir en la pantalla, no alfabetico: es lo que
+    # permite ver de un vistazo que el reordenado ha hecho lo que se esperaba.
+    gamas = list(dict.fromkeys(p["gama"] for p in pares))
     print(f"{len(pares)} pares en {len(gamas)} gamas -> {args.salida}")
-    for gama in sorted(gamas):
-        print(f"  {gama}: {sum(1 for p in pares if p['gama'] == gama)}")
+    for i, gama in enumerate(gamas, 1):
+        print(f"  {i}. {gama}: {sum(1 for p in pares if p['gama'] == gama)}")
     # La contrasena se expande dentro del contenedor: fuera no existe.
     remoto = f"/tmp/{args.salida.name}"
     comilla = "'\"'\"'"

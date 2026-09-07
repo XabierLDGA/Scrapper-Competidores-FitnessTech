@@ -177,3 +177,51 @@ def test_el_sql_escribe_null_y_no_la_palabra_none(tmp_path):
 
     assert "NULL" in sql
     assert "'None'" not in sql
+
+
+def test_advanced_va_la_ultima_aunque_el_excel_la_ponga_la_tercera(tmp_path):
+    # Es la unica gama que no esta publicada en nuestra tienda: sus filas
+    # salen con el lado nuestro vacio y abrian la pantalla con un bloque
+    # entero sin precios.
+    ruta = _libro(tmp_path, {
+        "Compact vs Elite": [_fila(sku="SE-1")],
+        "Pro vs Black": [_fila(sku="SE-2")],
+        "Advanced vs Black RX": [_fila(sku="SE-3")],
+        "Pro Tech vs Genesis": [_fila(sku="SE-4")],
+    })
+
+    gamas = list(dict.fromkeys(p["gama"] for p in leer_pares(ruta)))
+
+    assert gamas == ["Compact vs Elite", "Pro vs Black",
+                     "Pro Tech vs Genesis", "Advanced vs Black RX"]
+
+
+def test_una_gama_que_no_conocemos_va_detras_sin_romper_nada(tmp_path):
+    # Si producto renombra una hoja o anade una gama nueva, el importador no
+    # puede perderla ni reventar: se coloca al final.
+    ruta = _libro(tmp_path, {
+        "Advanced vs Black RX": [_fila(sku="SE-1")],
+        "Nueva gama vs Lo que sea": [_fila(sku="SE-2")],
+        "Compact vs Elite": [_fila(sku="SE-3")],
+    })
+
+    gamas = list(dict.fromkeys(p["gama"] for p in leer_pares(ruta)))
+
+    assert gamas == ["Compact vs Elite", "Advanced vs Black RX",
+                     "Nueva gama vs Lo que sea"]
+
+
+def test_reordenar_las_gamas_no_toca_el_orden_de_sus_filas(tmp_path):
+    ruta = _libro(tmp_path, {
+        "Advanced vs Black RX": [_fila(sku="SE-1"), _fila(sku="SE-2")],
+        "Compact vs Elite": [_fila(sku="SE-3"), _fila(sku="SE-4")],
+    })
+
+    pares = leer_pares(ruta)
+
+    assert [(p["gama"], p["orden"], p["ft_sku"]) for p in pares] == [
+        ("Compact vs Elite", 0, "SE-3"),
+        ("Compact vs Elite", 1, "SE-4"),
+        ("Advanced vs Black RX", 0, "SE-1"),
+        ("Advanced vs Black RX", 1, "SE-2"),
+    ]
