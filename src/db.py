@@ -391,9 +391,11 @@ class Database:
     def log_crawl_error(self, competitor_name: str, error_message: str):
         """Persiste un fallo completo de crawl de un competidor.
 
-        n8n consulta esta tabla cada tarde (18:00 Europe/Madrid) para el
-        email de errores del dia; no tiene relacion con el resumen diario
-        de productos/precios, que se dispara aparte via webhook."""
+        Hoy no la lee nadie: se documento que n8n la consultaba cada tarde
+        para un email de errores, pero ese workflow no existe (comprobado
+        el 2026-09-07 contra los 13 workflows del VPS). Un competidor puede
+        estar cayendose dias sin que suene nada; el unico rastro esta en
+        esta tabla y en el punto de "ultima lectura" del panel."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             try:
