@@ -145,14 +145,13 @@
     {% endfor %}
 
     <p class="rail__section">Análisis</p>
-    <span class="navitem navitem--pronto">
+    <a class="navitem navitem--largo" href="#comparativa" data-view="comparativa">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3 13V7M8 13V3M13 13v-4"></path>
       </svg>
       <span class="navitem__text">Comparativa Titanium</span>
-      <span class="pill-pronto">Pronto</span>
-    </span>
+    </a>
   </nav>
 
   <div class="rail__foot">
@@ -288,6 +287,128 @@
         </a>
         {% endfor %}
       </div>
+    </section>
+
+    {# ------------------------ COMPARATIVA TITANIUM --------------------- #}
+    <section class="view" data-view="comparativa" tabindex="-1"
+             data-titulo="Comparativa Titanium"
+             data-sub="{{ comparativa_totals.pares }} pares con precio en ambos lados">
+
+      <div class="filtros-tienda" role="group" aria-label="Filtrar por gama">
+        <span class="filtros__rotulo">Gama</span>
+        <button type="button" class="pastilla is-active" data-gama="">Todas</button>
+        {% for g in comparativa %}
+        <button type="button" class="pastilla" data-gama="{{ g.gama }}">{{ g.gama }}</button>
+        {% endfor %}
+      </div>
+
+      <div class="cifras">
+        <div class="cifra"><p class="cifra__rotulo">Pares vigilados</p>
+          <p class="cifra__valor">{{ comparativa_totals.pares | miles }}</p></div>
+        <div class="cifra"><p class="cifra__rotulo">Somos más caros</p>
+          <p class="cifra__valor">{{ comparativa_totals.mas_caros | miles }}</p></div>
+        <div class="cifra"><p class="cifra__rotulo">Somos más baratos</p>
+          <p class="cifra__valor">{{ comparativa_totals.mas_baratos | miles }}</p></div>
+        <div class="cifra"><p class="cifra__rotulo">Diferencia mediana</p>
+          <p class="cifra__valor">{{ comparativa_totals.delta_pct_mediano | pct_signo }}</p></div>
+        <div class="cifra"><p class="cifra__rotulo">Cambios 7 días</p>
+          <p class="cifra__valor">{{ comparativa_totals.cambios_semana | miles }}</p></div>
+      </div>
+
+      <div class="filtros-tienda" role="group" aria-label="Filtrar por equivalencia">
+        <span class="filtros__rotulo">Equivalencia</span>
+        {% for clave in ['', 'Directa', 'Aproximada', 'Sin equivalente'] %}
+        <button type="button" class="pastilla pastilla--sm{{ ' is-active' if not clave }}"
+                data-equiv="{{ clave }}">{{ clave or 'Todas' }}</button>
+        {% endfor %}
+      </div>
+
+      <div class="vs-gamas">
+        {% for g in comparativa %}
+        <section class="bloque" data-gama="{{ g.gama }}">
+          <div class="bloque__filtros">
+            <b class="vs-gama">{{ g.gama }}</b>
+            <span class="vs-cuenta"><span data-cuenta-pares>{{ g.pares | length }}</span> pares</span>
+          </div>
+          <div class="tablawrap">
+            <table class="tabla tabla--vs">
+              <thead><tr>
+                <th>Fitness Tech</th>
+                <th class="vs-th-delta">Δ</th>
+                <th>Titanium Strength</th>
+              </tr></thead>
+              <tbody>
+                {% for p in g.pares %}
+                <tr data-equiv="{{ p.equivalencia }}"
+                    data-busca="{{ (p.ft_title ~ ' ' ~ p.ft_sku ~ ' ' ~ (p.titanium_title or '')) | lower }}">
+
+                  <td>
+                    <span class="vs-lado">
+                      <span class="vs-nombre">
+                        {%- if p.ft_url -%}
+                          <a href="{{ p.ft_url }}" target="_blank" rel="noopener">{{ p.ft_title }}</a>
+                        {%- else -%}{{ p.ft_title }}{%- endif -%}
+                      </span>
+                      <span class="vs-sku">{{ p.ft_sku }}</span>
+                      {% if p.ft_price is not none %}
+                      <span class="vs-precio">{{ p.ft_price | eur }}</span>
+                      {% else %}
+                      <span class="vs-nota">Sin publicar en la tienda</span>
+                      {% endif %}
+                    </span>
+                  </td>
+
+                  <td class="vs-delta{{ ' vs-delta--positivo' if p.delta and p.delta > 0 }}{{ ' vs-delta--negativo' if p.delta and p.delta < 0 }}">
+                    {% if p.delta is not none %}
+                    <b>{{ p.delta | eur_signo }}</b>
+                    <span>{{ p.delta_pct | pct_signo }}</span>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {% if p.estado == 'sin_equivalente' %}
+                    <span class="vs-lado">
+                      <span class="vs-nota">Sin equivalente en Titanium</span>
+                      {% if p.observaciones %}<span class="vs-obs">{{ p.observaciones }}</span>{% endif %}
+                    </span>
+                    {% else %}
+                    <span class="vs-lado">
+                      <span class="vs-nombre">
+                        {%- if p.titanium_url -%}
+                          <a href="{{ p.titanium_url }}" target="_blank" rel="noopener">{{ p.titanium_title }}</a>
+                        {%- else -%}{{ p.titanium_title }}{%- endif -%}
+                      </span>
+                      <span class="vs-meta">
+                        {% if p.estado == 'fuera_catalogo' %}
+                        Fuera de catálogo
+                        {% else %}
+                        <span class="vs-dot{{ ' is-on' if p.titanium_available }}"></span>
+                        {{ 'Disponible' if p.titanium_available else 'Agotado' }}
+                        {% endif %}
+                        ·
+                        <span{% if p.observaciones %} title="{{ p.observaciones }}"{% endif %}>{{ p.equivalencia }}</span>
+                      </span>
+                      {% if p.titanium_price is not none %}
+                      <span class="vs-precio">{{ p.titanium_price | eur }}</span>
+                      {% endif %}
+                    </span>
+                    {% endif %}
+                  </td>
+
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+
+      <p class="vacio{{ ' is-on' if not comparativa }}" data-vacio>
+        {% if comparativa %}Nada que revisar con este filtro.
+        {% else %}Todavía no hay emparejamiento cargado. Se genera con
+        <code>python import_comparativa.py</code> y se aplica sobre MySQL.{% endif %}
+      </p>
     </section>
 
     {# ------------------------- VISTAS DE TIENDA ------------------------ #}

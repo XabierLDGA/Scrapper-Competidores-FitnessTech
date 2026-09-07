@@ -12,8 +12,10 @@ from src.db import Database
 from src.metrics import (
     build_change_feed,
     build_targets,
+    build_titanium_comparison,
     changes_since,
     global_metrics,
+    titanium_metrics,
 )
 
 load_dotenv()
@@ -98,6 +100,24 @@ def fmt_fecha(value, with_time: bool = False) -> str:
     return str(value)
 
 
+@app.template_filter("eur_signo")
+def fmt_eur_signo(value) -> str:
+    """Como `eur`, pero con el signo siempre delante. La diferencia contra
+    Titanium no se entiende sin el: 204 y -204 se leerian igual."""
+    if value is None:
+        return "—"
+    signo = "+" if value > 0 else "-" if value < 0 else ""
+    return signo + _es_number(abs(value), 2) + " €"
+
+
+@app.template_filter("pct_signo")
+def fmt_pct_signo(value) -> str:
+    if value is None:
+        return "—"
+    signo = "+" if value > 0 else "-" if value < 0 else ""
+    return signo + _es_number(abs(value), 1) + " %"
+
+
 def get_db() -> Database:
     return Database(
         host=os.getenv("DB_HOST", "localhost"),
@@ -118,21 +138,27 @@ WEEK_HOURS = 24 * 7
 @app.route("/")
 def index():
     db = get_db()
+    # Se saca a variable porque ahora lo usan dos cosas: las tiendas y la
+    # comparativa. Consultarlo dos veces serian 3.400 filas de mas por carga.
+    catalog = db.get_latest_snapshots()
     targets = build_targets(
         competitors=db.get_competitor_stats(),
         new_products=db.get_recently_added_products(hours=WEEK_HOURS),
         price_events=db.get_recent_price_events(hours=WEEK_HOURS),
         availability_events=db.get_recent_availability_events(hours=WEEK_HOURS),
         removed_products=db.get_recently_removed_products(hours=WEEK_HOURS),
-        catalog=db.get_latest_snapshots(),
+        catalog=catalog,
     )
     week = build_change_feed(targets)
+    comparativa = build_titanium_comparison(db.get_titanium_pairs(), catalog)
     return render_template(
         "dashboard.html",
         targets=targets,
         totals=global_metrics(targets),
         changes=changes_since(week, datetime.now() - timedelta(hours=24)),
         changes_week=week,
+        comparativa=comparativa,
+        comparativa_totals=titanium_metrics(comparativa, week),
     )
 
 

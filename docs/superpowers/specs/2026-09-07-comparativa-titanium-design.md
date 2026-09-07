@@ -216,10 +216,17 @@ Cada par sale con un `estado` que la plantilla usa para decidir qué pinta:
 Titanium. Solo se calcula en `ok`; en el resto es `None` y la columna
 central queda vacía.
 
-**El signo y el color.** Δ positivo (somos más caros) va en **rojo**, Δ
-negativo (somos más baratos) en **verde**. Es la convención del panel y del
-correo semanal, y va al revés de lo que uno esperaría de una cifra: rojo
-es mala noticia para nosotros, no número negativo.
+**El signo y el color.** Δ positivo va en **verde** y Δ negativo en **rojo**,
+que es como se lee una cifra con signo. Va **a propósito al revés** que las
+píldoras de la bandeja y del correo semanal, donde el color sigue el semáforo
+comercial y una bajada de la competencia se pinta en rojo.
+
+La diferencia es qué se está pintando: allí, un *evento* (alguien movió un
+precio, y que la competencia baje es mala noticia); aquí, una *cifra con
+signo* estática. Tiene una consecuencia que conviene tener presente al
+leerla: **verde en esta pantalla significa que somos más caros**, que
+comercialmente no es la buena noticia. Decidido con el usuario el 2026-09-07
+tras verlo pintado de las dos maneras.
 
 `Database.get_titanium_pairs()` en `src/db.py` es un `SELECT * FROM
 titanium_pairs ORDER BY gama, orden`, sin más.

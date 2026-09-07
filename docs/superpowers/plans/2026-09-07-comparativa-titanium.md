@@ -14,7 +14,7 @@
 
 - **Idioma:** todo el texto de cara al usuario y todos los comentarios de código, en español. Los comentarios explican **por qué**, no qué.
 - **El Excel solo aporta el emparejamiento.** Sus columnas de precio (`PVP FT`, `PVP Titanium`, `Dif. FT − Titanium`, `Variación vs Titanium`, `Enlace disponible`) se ignoran a propósito. Todos los precios salen del scrapper.
-- **Δ = nuestro PVP − PVP Titanium.** Δ positivo (somos más caros) se pinta con la rampa `--up-*` (**roja**); Δ negativo (somos más baratos) con `--down-*` (**verde**). Es la convención del panel: rojo es mala noticia para nosotros, no número negativo. No lo "arregles".
+- **Δ = nuestro PVP − PVP Titanium.** Δ positivo se pinta con la rampa `--down-*` (**verde**) y Δ negativo con `--up-*` (**roja**), por el signo de la cifra. Va a propósito al revés que las píldoras de la bandeja, donde el color sigue el semáforo comercial. Consecuencia a tener presente: verde aquí significa que somos **más caros**. No lo "arregles".
 - **El lado nuestro es `Fitness Tech`** (ES). `Fitness Tech FR` y `Fitness Tech PT` quedan fuera.
 - **El competidor es `Titanium Strength`**, `competitor_id = 4` en producción. En el código se referencia **por nombre**, nunca por id.
 - **`src/metrics.py` solo contiene funciones puras:** reciben filas, devuelven estructuras. Ni BD ni Flask, para que queden cubiertas por tests.

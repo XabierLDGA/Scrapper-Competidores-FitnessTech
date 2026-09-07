@@ -16,8 +16,9 @@
      7  Pastillas y filtros
      8  Bloque y tablas
      9  Tarjetas de tienda
-    10  Pantalla estrecha
-    11  Utilidades
+    10  Comparativa Titanium
+    11  Pantalla estrecha
+    12  Utilidades
    ========================================================================== */
 
 /* ---------- 1  Tokens y base --------------------------------------------- */
@@ -245,21 +246,11 @@ input, button { font: inherit; }
 .navitem--rival .navitem__dot.is-live { background: #f19b93; }
 .navitem--rival .navitem__count { color: rgba(255, 255, 255, 0.45); }
 
-.navitem--pronto { color: rgba(255, 255, 255, 0.32); cursor: default; }
-.navitem--pronto:hover { color: rgba(255, 255, 255, 0.32); }
-
-/* Es el unico rotulo largo del menu y no tiene destino al que llevar: mejor
-   que envuelva a que se corte en "Comparativa Tit...". */
-.navitem--pronto .navitem__text { white-space: normal; }
-
-.pill-pronto {
-  font-size: 0.594rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  padding: 2px 6px;
-}
+/* Es el rotulo mas largo del menu: mejor que envuelva a que se corte en
+   "Comparativa Tit...". La regla venia del letrero "Pronto" que ocupaba
+   este sitio; se conserva ahora que la entrada lleva de verdad a algun
+   lado, porque el problema de ancho es el mismo. */
+.navitem--largo .navitem__text { white-space: normal; }
 
 .rail__foot {
   margin-top: auto;
@@ -686,7 +677,73 @@ input, button { font: inherit; }
 
 .tarjeta__pie { font-size: 0.719rem; color: var(--ink-3); }
 
-/* ---------- 10  Pantalla estrecha ---------------------------------------- */
+/* ---------- 10  Comparativa Titanium ------------------------------------- */
+
+.vs-gamas { display: grid; gap: 14px; }
+
+.vs-gama { font-size: 0.875rem; }
+.vs-cuenta { font-size: 0.75rem; color: var(--ink-3); }
+
+/* Ancho fijo y no automatico: con `auto` la columna del medio se estira con
+   el texto de las cifras y separa las dos maquinas que toda la pantalla
+   existe para ver juntas. */
+.tabla--vs { table-layout: fixed; }
+.tabla--vs th:first-child,
+.tabla--vs th:last-child { width: 41%; }
+.tabla--vs td { vertical-align: top; }
+
+.vs-th-delta { text-align: center; }
+
+.vs-lado { display: flex; flex-direction: column; gap: 3px; }
+
+.vs-nombre { color: var(--ink); font-weight: 500; }
+.vs-nombre a { color: inherit; }
+.vs-nombre a:hover { color: var(--accent); text-decoration: underline; }
+
+.vs-sku {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.719rem;
+  color: var(--ink-3);
+}
+
+.vs-precio {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.813rem;
+  color: var(--ink);
+}
+
+.vs-meta { font-size: 0.719rem; color: var(--ink-2); }
+.vs-nota { font-size: 0.75rem; color: var(--ink-3); font-style: italic; }
+.vs-obs { font-size: 0.719rem; color: var(--ink-3); }
+
+.vs-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  margin-right: 3px;
+}
+.vs-dot.is-on { background: var(--accent); }
+
+.vs-delta {
+  text-align: center;
+  font-family: "IBM Plex Mono", monospace;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+.vs-delta b { display: block; font-weight: 500; font-size: 0.813rem; }
+.vs-delta span { display: block; font-size: 0.719rem; padding-top: 2px; }
+/* Aqui el color va por el SIGNO del numero, no por el semaforo comercial del
+   resto del panel: verde el positivo, rojo el negativo, que es como se lee
+   una cifra con signo. Va a proposito al reves que las pildoras de la
+   bandeja, donde una bajada de precio de la competencia se pinta en rojo.
+   Ojo a lo que significa: verde aqui es que somos MAS caros que ellos.
+   Decision del usuario; no lo "arregles". */
+.vs-delta--positivo { color: var(--down-ink); }  /* --down-* es la rampa verde */
+.vs-delta--negativo { color: var(--up-ink); }    /* --up-* es la rampa roja */
+
+/* ---------- 11  Pantalla estrecha ---------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -726,13 +783,22 @@ input, button { font: inherit; }
   .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cifra__valor { font-size: 1.25rem; }
   .t-nombre { max-width: 220px; }
+
+  /* Las tres columnas apiladas, con la diferencia entre ambas maquinas, que
+     es donde se entiende. */
+  .tabla--vs, .tabla--vs tbody, .tabla--vs tr, .tabla--vs td { display: block; width: auto; }
+  .tabla--vs thead { display: none; }
+  .tabla--vs td { border-bottom: 0; padding: 4px 12px; }
+  .tabla--vs tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .vs-delta { text-align: left; }
+  .vs-delta b, .vs-delta span { display: inline; }
 }
 
 @media (max-width: 380px) {
   .cifras { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ---------- 11  Utilidades ------------------------------------------------ */
+/* ---------- 12  Utilidades ------------------------------------------------ */
 
 /* Al final de la hoja a proposito: `.u-oculto` y `.subfiltros` tienen la
    misma especificidad, asi que si esta regla fuese antes ganaria el

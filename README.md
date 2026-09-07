@@ -100,6 +100,14 @@ stock— en una sola bandeja ordenada de mas reciente a mas antiguo, con
 filtros por tienda y por tipo. La vista **por tienda** tiene dos pestanas,
 catalogo y cambios de 24 horas, con sus propios subfiltros.
 
+La tercera pantalla, **Comparativa Titanium**, enfrenta cada maquina nuestra
+con su equivalente de Titanium Strength: nosotros a la izquierda, ellos a la
+derecha y la diferencia en medio, agrupado en las cuatro gamas que enfrenta
+producto. El emparejamiento lo decide producto y entra por
+`import_comparativa.py`; los precios son los del ultimo crawl. Ojo al color,
+que aqui va por el signo de la cifra y no por el semaforo del resto del
+panel: verde es diferencia positiva, es decir, que somos mas caros.
+
 La vista viaja en el hash de la URL (`#tienda/titanium-strength`), asi que
 recargar no te devuelve al principio. `/` enfoca el buscador y `Esc` lo
 limpia. El boton de la esquina inferior izquierda alterna entre tema claro
@@ -216,10 +224,19 @@ docker compose down -v    # borra tambien la base de datos
   > arrancar, asi que los cambios en `dashboard.html` no se ven hasta
   > reiniciar el servidor (los de CSS/JS si, son ficheros estaticos).
 - `src/metrics.py` — Agregados derivados del panel (disponibilidad, % con
-  precio rebajado, mediana de precio) y `build_change_feed`, que aplana los
+  precio rebajado, mediana de precio), `build_change_feed`, que aplana los
   cuatro tipos de evento de las cuatro tiendas en la bandeja unica de la
-  portada. Funciones puras sobre las filas que devuelve `Database`: ni BD
+  portada, y `build_titanium_comparison` / `titanium_metrics`, que resuelven
+  el emparejamiento de producto contra el catalogo vigente para la pantalla
+  de comparativa. Funciones puras sobre las filas que devuelve `Database`: ni BD
   ni Flask, para que el calculo quede cubierto por tests.
+- `import_comparativa.py` — Convierte el Excel de emparejamiento que mantiene
+  producto (`data/comparativa-titanium.xlsx`) en el SQL que puebla
+  `titanium_pairs` (`data/titanium_pairs.sql`). Uso manual desde el equipo
+  local: necesita `openpyxl`, que no esta en la imagen a proposito, y el
+  contenedor de MySQL no publica el 3306. Al aplicar el SQL, este imprime que
+  emparejamientos no resuelven contra el catalogo, que es lo que hay que
+  devolverle a producto.
 - `scheduler.py` — Ejecuta el crawl diario dentro del contenedor `crawler`
   (bucle Python que calcula cuanto falta para las 03:00 de Europe/Madrid y
   espera, en vez de un demonio cron dentro de la imagen). La zona horaria,

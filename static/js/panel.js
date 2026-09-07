@@ -383,6 +383,67 @@
       filtrar();
     });
 
+  // ---------- comparativa Titanium ----------
+  var comparativa = document.querySelector('.view[data-view="comparativa"]');
+
+  if (comparativa) {
+    var filtroGama = "";
+    var filtroEquiv = "";
+
+    // `.bloque[data-gama]` y `.pastilla[data-gama]` por separado: las
+    // pastillas del filtro llevan el mismo atributo que los bloques, y a
+    // secas se mezclarian.
+    var bloques = [].slice.call(comparativa.querySelectorAll(".bloque[data-gama]"));
+    var pastillasGama = [].slice.call(comparativa.querySelectorAll(".pastilla[data-gama]"));
+    var pastillasEquiv = [].slice.call(comparativa.querySelectorAll(".pastilla[data-equiv]"));
+
+    function filtrarComparativa() {
+      var total = 0;
+
+      bloques.forEach(function (bloque) {
+        var deLaGama = !filtroGama || bloque.getAttribute("data-gama") === filtroGama;
+        var visibles = 0;
+
+        [].slice.call(bloque.querySelectorAll("tbody tr")).forEach(function (fila) {
+          var ok = deLaGama
+            && (!filtroEquiv || fila.getAttribute("data-equiv") === filtroEquiv)
+            && coincide(fila);
+          fila.style.display = ok ? "" : "none";
+          if (ok) visibles++;
+        });
+
+        // Un bloque sin filas visibles se esconde entero: la cabecera de una
+        // gama vacia solo hace ruido.
+        bloque.classList.toggle("u-oculto", visibles === 0);
+        var cuenta = bloque.querySelector("[data-cuenta-pares]");
+        if (cuenta) cuenta.textContent = numeroEs(visibles, 0);
+        total += visibles;
+      });
+
+      // Solo cuando hay gamas: si la tabla esta vacia, el mensaje que ya trae
+      // la plantilla explica como poblarla y no hay que pisarlo.
+      var vacio = comparativa.querySelector("[data-vacio]");
+      if (vacio && bloques.length) vacio.classList.toggle("is-on", total === 0);
+    }
+
+    comparativa.addEventListener("click", function (e) {
+      var pastilla = e.target.closest(".pastilla");
+      if (!pastilla) return;
+
+      if (pastilla.hasAttribute("data-gama")) {
+        filtroGama = pastilla.getAttribute("data-gama");
+        pastillasGama.forEach(function (p) { p.classList.toggle("is-active", p === pastilla); });
+      } else if (pastilla.hasAttribute("data-equiv")) {
+        filtroEquiv = pastilla.getAttribute("data-equiv");
+        pastillasEquiv.forEach(function (p) { p.classList.toggle("is-active", p === pastilla); });
+      }
+      filtrarComparativa();
+    });
+
+    registrar(comparativa, filtrarComparativa);
+    filtrarComparativa();
+  }
+
   function desdeHash() {
     mostrar((location.hash || "#cambios").slice(1));
   }
