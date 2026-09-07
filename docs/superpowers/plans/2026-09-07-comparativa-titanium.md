@@ -579,9 +579,31 @@ Si sale otro número de pares, **parar**: o el Excel ha cambiado o el importador
 ```bash
 scp migrations/007_titanium_pairs.sql data/titanium_pairs.sql deploy@168.119.241.200:/tmp/
 ssh deploy@168.119.241.200
-PASS=$(grep DB_PASSWORD /home/deploy/scraper-competidores/.env | cut -d= -f2)
-docker exec -i mysql mysql -u root -p"$PASS" < /tmp/007_titanium_pairs.sql
-docker exec -i mysql mysql -u root -p"$PASS" competitor_monitor < /tmp/titanium_pairs.sql
+docker exec -i mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"' \
+  < /tmp/007_titanium_pairs.sql
+docker exec -i mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" competitor_monitor' \
+  < /tmp/titanium_pairs.sql
+```
+
+Con **root** y no con el `DB_USER` del `.env` (que es `scraper`, sin permiso
+para crear tablas), y expandiendo la contraseña **dentro** del contenedor,
+que es el único sitio donde existe.
+
+Después, comprobar que el usuario de la aplicación ve la tabla nueva — si los
+`GRANT` de `scraper` fuesen por tabla y no por base, el panel daría un error
+de permisos en producción y no en local:
+
+```bash
+cd /home/deploy/scraper-competidores && docker compose exec -T crawler python -c "
+import os
+from src.db import Database
+db = Database(host='mysql', user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'),
+              database=os.getenv('DB_NAME'))
+with db.get_connection() as conn:
+    cur = conn.cursor(dictionary=True)
+    cur.execute('SELECT COUNT(*) n FROM titanium_pairs')
+    print(cur.fetchone())
+"
 ```
 
 Expected: el informe imprime **ninguna** URL de Titanium huérfana, **20** SKUs nuestros sin publicar, y la consulta 3 señala `SE-28780` → `PSE-28780`. Si el informe (1) devuelve filas, el crawl ha cambiado alguna URL y hay que avisar a producto antes de seguir.

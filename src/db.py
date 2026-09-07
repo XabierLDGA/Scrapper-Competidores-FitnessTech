@@ -405,3 +405,22 @@ class Database:
                 logger.info(f"Error de crawl registrado para {competitor_name}")
             finally:
                 cursor.close()
+
+    def get_titanium_pairs(self) -> list[dict]:
+        """El emparejamiento contra Titanium que mantiene producto.
+
+        Sin precios: los pone `build_titanium_comparison` cruzando esto con el
+        catalogo vigente. Se puebla con `import_comparativa.py`.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                cursor.execute("""
+                    SELECT id, gama, orden, ft_sku, ft_title, equivalencia,
+                           titanium_title, titanium_url, observaciones
+                    FROM titanium_pairs
+                    ORDER BY gama, orden
+                """)
+                return cursor.fetchall()
+            finally:
+                cursor.close()
