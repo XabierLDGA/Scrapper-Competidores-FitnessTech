@@ -12,7 +12,7 @@ comparativa contra Titanium.
 
 Cada lunes consulta el MySQL compartido, arma un email con los cambios de la
 competencia de los ultimos 7 dias y lo manda a la lista de avisos
-(direccion, marketing, marketplace y tech: nueve buzones internos).
+(direccion, marketing, marketplace y tech: diez buzones internos).
 
 Cuenta los **cuatro tipos** de cambio -altas de catalogo, cambios de precio,
 entradas y salidas de stock y bajas de catalogo-, los mismos que la pestana

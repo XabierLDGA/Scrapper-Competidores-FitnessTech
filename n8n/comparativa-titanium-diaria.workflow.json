@@ -98,7 +98,7 @@
       {
         "parameters": {
           "fromEmail": "xlopez@fitnesstech.es",
-          "toEmail": "jose.gimenez@fitnesstech.es,dbelchi@fitnesstech.es,acervera@fitnesstech.es,aperez@fitnesstech.es,jgomez@fitnesstech.es,vsantos@fitnesstech.es,marketing@fitnesstech.es,marketplace@fitnesstech.es,tech@fitnesstech.es",
+          "toEmail": "jose.gimenez@fitnesstech.es,dbelchi@fitnesstech.es,acervera@fitnesstech.es,aperez@fitnesstech.es,jgomez@fitnesstech.es,vsantos@fitnesstech.es,xlopez@fitnesstech.es,marketing@fitnesstech.es,marketplace@fitnesstech.es,tech@fitnesstech.es",
           "subject": "=Comparativa Titanium: {{ $json.total }} cambios ({{ $json.totalVuelcos }} cambian la posicion)",
           "html": "={{ $json.html }}",
           "options": {}

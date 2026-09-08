@@ -289,7 +289,7 @@ El crawler no envia notificaciones. El aviso lo monta **n8n** por su cuenta
 con el workflow *Notificacion semanal scrapper competencia*: una vez por
 semana consulta el MySQL compartido, arma un email con los cambios de la
 competencia de los ultimos 7 dias y lo manda a la lista de avisos
-(direccion, marketing, marketplace y tech: nueve buzones internos).
+(direccion, marketing, marketplace y tech: diez buzones internos).
 
 Que el aviso viva entero en n8n significa que a quien se avisa, cada cuanto
 y con que aspecto se cambia desde su interfaz, sin tocar este repo ni
