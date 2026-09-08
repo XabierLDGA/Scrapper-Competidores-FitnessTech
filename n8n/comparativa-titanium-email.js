@@ -1,5 +1,5 @@
 const rows = $input.all().map(i => i.json);
-if (!rows.length) return [{ json: { skip: true } }];
+const hayCambios = rows.length > 0;
 
 // ---------------------------------------------------------------------------
 // El aviso diario de la comparativa contra Titanium. A diferencia del correo
@@ -7,6 +7,15 @@ if (!rows.length) return [{ json: { skip: true } }];
 // posicion: no "Titanium bajo el Remo Sentado a 1.595 EUR", sino "estabamos
 // 296 EUR por debajo y ahora estamos 304 por encima". Eso es lo accionable
 // para producto y la razon de que sea un correo aparte.
+//
+// **Sale todos los dias, tambien cuando no hay nada que contar.** Antes se
+// cortaba en seco -el nodo Code devolvia `skip` y el If paraba el envio-, y
+// como Titanium casi nunca toca los productos emparejados, el correo no
+// llegaba practicamente nunca. Un silencio de semanas no se distingue de un
+// crawler averiado, asi que ahora los dias tranquilos mandan un correo corto
+// que dice justo eso: se ha mirado y no hay novedad. El resto del cuerpo del
+// email no necesito cambios para esto, porque con cero filas ya se armaba
+// solo: `g` queda vacio, los totales a cero y los bucles no iteran.
 //
 // Mismo sistema visual que el panel en tema claro. Los colores son los tokens
 // de static/css/panel.css, literales: en un email no valen las variables CSS.
@@ -166,17 +175,32 @@ h += '<span style="' + MO + 'font-size:11px;color:rgba(255,255,255,.45);"> &nbsp
 h += '</td></tr>';
 
 h += '<tr><td style="padding:22px 26px 18px;border-bottom:1px solid ' + LINE + ';">';
-h += '<div style="' + TITULO + 'font-size:19px;color:' + INK + ';">Titanium ha movido ficha</div>';
+h += '<div style="' + TITULO + 'font-size:19px;color:' + INK + ';">';
+h += (hayCambios ? 'Titanium ha movido ficha' : 'Sin novedad en los vigilados') + '</div>';
 h += '<div style="' + SANS + 'font-size:13px;color:' + INK3 + ';padding-top:6px;">';
 h += 'Ultimas 24 horas &nbsp;&middot;&nbsp; ' + fd(hoy) + '</div>';
 h += '</td></tr>';
 
-h += '<tr><td style="padding:18px 22px 4px;">';
-h += '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>';
-h += cifra('Cambios de precio', totalPrecios);
-h += cifra('Cambian la posicion', totalVuelcos);
-h += cifra('Stock y bajas', totalOtros);
-h += '</tr></table></td></tr>';
+if (hayCambios) {
+  h += '<tr><td style="padding:18px 22px 4px;">';
+  h += '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>';
+  h += cifra('Cambios de precio', totalPrecios);
+  h += cifra('Cambian la posicion', totalVuelcos);
+  h += cifra('Stock y bajas', totalOtros);
+  h += '</tr></table></td></tr>';
+} else {
+  // Tres ceros en las tarjetas no dicen nada; una frase si. Lo que importa
+  // del correo tranquilo es que se sepa que se ha mirado.
+  h += '<tr><td style="padding:22px 26px 4px;">';
+  h += '<div style="' + SANS + 'font-size:14px;line-height:1.55;color:' + INK + ';">';
+  h += 'Titanium no ha tocado ni el precio ni la disponibilidad de ninguno de los ';
+  h += 'productos emparejados con los nuestros, y no ha retirado ninguno de su catalogo.';
+  h += '</div>';
+  h += '<div style="' + SANS + 'font-size:13px;line-height:1.5;color:' + INK3 + ';padding-top:10px;">';
+  h += 'Nuestra posicion frente a ellos sigue como estaba. Este correo llega cada ';
+  h += 'manana aunque no haya cambios: si algun dia no llega, es que algo ha fallado.';
+  h += '</div></td></tr>';
+}
 
 for (const gama in g) {
   h += '<tr><td style="padding:22px 26px 0;">';
@@ -207,10 +231,18 @@ h += '</td></tr>';
 
 h += '</table></div>';
 
+// El asunto lo arma el JS y no el nodo Send an Email, que con cero cambios
+// habria escrito "0 cambios (0 cambian la posicion)".
+const plural = (n, sing, pl) => n + ' ' + (n === 1 ? sing : pl);
+const asunto = hayCambios
+  ? 'Comparativa Titanium: ' + plural(rows.length, 'cambio', 'cambios')
+    + ' (' + plural(totalVuelcos, 'cambia', 'cambian') + ' la posicion)'
+  : 'Comparativa Titanium: sin cambios (' + fd(hoy) + ')';
+
 return [{
   json: {
     html: h,
-    skip: false,
+    asunto: asunto,
     total: rows.length,
     totalPrecios: totalPrecios,
     totalVuelcos: totalVuelcos,

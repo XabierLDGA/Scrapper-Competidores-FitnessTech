@@ -41,7 +41,9 @@ secretos siguen solo dentro de n8n.
 
 Cada manana a las 07:00 mira si Titanium ha movido algo en los 67 productos
 que producto ha emparejado con los nuestros (`titanium_pairs`, que puebla
-`import_comparativa.py`). Si no hay nada, no manda nada.
+`import_comparativa.py`). **Manda correo haya novedad o no**: los dias
+tranquilos, que son casi todos, llega una version corta que dice que se ha
+mirado y no hay cambios.
 
 Lo que lo distingue del semanal es que no cuenta el cambio, cuenta el
 **efecto sobre nuestra posicion**: no "Titanium bajo el Remo Sentado a
@@ -58,10 +60,13 @@ Schedule Trigger (diario, 07:00)
   -> Execute a SQL query   (precio, stock y bajas de 24 h, restringidos por
   |                         JOIN a titanium_pairs; trae ademas nuestro precio
   |                         vigente por subconsulta, para calcular la posicion)
-  -> Code in JavaScript    (arma el HTML del email)
-  -> If                    (corta si no hay nada que contar)
+  -> Code in JavaScript    (arma el HTML y el asunto, con novedad o sin ella)
   -> Send an Email
 ```
+
+Aqui no hay nodo *If*, y es la diferencia con el semanal. Lo hubo: cortaba el
+envio cuando la consulta no devolvia filas. Se quito el 2026-09-08 para que el
+correo llegue todos los dias.
 
 | Fichero | Que es |
 | --- | --- |
@@ -78,11 +83,23 @@ proposito:
   comparativa del panel: verde el positivo (somos mas caros), rojo el
   negativo.
 
-**Un aviso sobre lo poco que va a sonar.** A 2026-09-07, de los 135 cambios
-de precio que se le han detectado a Titanium desde agosto, **ninguno** cae en
-los 67 productos emparejados: sus selectorizadas no se mueven, lo que se
-mueve es el resto de su catalogo. Que este correo no llegue casi nunca es lo
-normal, no una averia.
+**Casi siempre va a decir que no hay novedad, y es lo normal.** A 2026-09-07,
+de los 135 cambios de precio que se le han detectado a Titanium desde agosto,
+**ninguno** cae en los 67 productos emparejados: sus selectorizadas no se
+mueven, lo que se mueve es el resto de su catalogo.
+
+Justo por eso el correo sale igualmente. Cuando cortaba en seco no llegaba
+practicamente nunca, y un silencio de semanas no se distingue de un crawler
+averiado. El correo tranquilo es el latido: mientras llegue, el sistema mira.
+El asunto los distingue de un vistazo, sin abrirlos:
+
+```
+Comparativa Titanium: sin cambios (08/09/2026)
+Comparativa Titanium: 4 cambios (1 cambia la posicion)
+```
+
+El asunto lo arma el nodo *Code*, no el de envio, porque con cero filas la
+plantilla de antes habria escrito "0 cambios (0 cambian la posicion)".
 
 ## El email (semanal)
 
