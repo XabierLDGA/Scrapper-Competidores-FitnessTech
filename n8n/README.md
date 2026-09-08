@@ -5,8 +5,8 @@ por su cuenta, y lo que hay aqui son copias versionadas de esos montajes: los
 originales viven dentro del contenedor `n8n` del VPS, en una base SQLite,
 donde no hay historial ni forma de ver que cambio ni cuando.
 
-Son dos: el resumen semanal de toda la competencia y el aviso diario de la
-comparativa contra Titanium.
+Son tres: el resumen semanal de toda la competencia, el aviso diario de la
+comparativa contra Titanium y el aviso de fallos del crawl.
 
 ## `notificacion-semanal`
 
@@ -107,6 +107,59 @@ Comparativa Titanium: 4 cambios (1 cambia la posicion)
 
 El asunto lo arma el nodo *Code*, no el de envio, porque con cero filas la
 plantilla de antes habria escrito "0 cambios (0 cambian la posicion)".
+
+## `salud-crawl`
+
+Cada manana a las 07:00 mira si el crawl de la noche ha ido bien. Si ha ido
+bien **no manda nada**: el latido diario ya lo da el correo de Titanium, y un
+segundo correo diario que casi siempre dice "todo bien" acabaria en una
+carpeta sin abrir. Va solo a `tech@fitnesstech.es`, porque no es una noticia
+de mercado sino una averia que arreglar.
+
+Hasta el 2026-09-08 esto no existia. La tabla `crawl_errors` llevaba cuatro
+fallos registrados que no habia visto nadie, y el docstring de
+`log_crawl_error` afirmaba que n8n la consultaba cada tarde: ese workflow
+nunca se llego a montar.
+
+```
+Schedule Trigger (diario, 07:00)
+  -> Execute a SQL query   (errores de 24 h, tiendas sin lecturas y tiendas
+  |                         a medias, mas una fila `resumen` que va siempre)
+  -> Code in JavaScript    (arma el HTML y el asunto)
+  -> If                    (corta si no hay ningun problema)
+  -> Send an Email
+```
+
+**Mirar `crawl_errors` a secas no habria servido de nada**, porque los dos
+fallos peores son silenciosos y no dejan fila. De ahi las tres ramas de la
+consulta:
+
+| Rama | Que caza | Como se ve en el correo |
+| --- | --- | --- |
+| `error` | Lo que lanza excepcion, y desde el 2026-09-08 tambien el catalogo vacio | Pildora roja *Error* con el mensaje y la hora |
+| `sin_lecturas` | La tienda no ha dejado ni una lectura hoy | Pildora roja *Sin datos* |
+| `pocas_lecturas` | Ha dejado menos de la mitad de lo normal: catalogo descargado a medias | Pildora ambar *A medias*, con el porcentaje |
+
+Y la fila `resumen`, que viaja siempre, es la que permite distinguir **una
+tienda caida de un crawler parado**: si las lecturas de hoy son cero, no hay
+una tienda con problemas, es que no ha corrido nadie. El correo cambia de
+titular ("El crawl no ha corrido") y apunta al contenedor, no a la tienda.
+
+El umbral de `pocas_lecturas` se compara contra la **media de los 7 dias
+anteriores**, no contra el numero de productos activos: una tienda que de
+verdad ha encogido dejaria de avisar sola en una semana, en vez de avisar
+para siempre. Las tiendas sin historial quedan fuera, o una recien anadida
+avisaria su primer dia.
+
+| Fichero | Que es |
+| --- | --- |
+| `salud-crawl.sql` | La consulta del nodo *Execute a SQL query* |
+| `salud-crawl-email.js` | El codigo del nodo *Code in JavaScript* |
+| `salud-crawl.workflow.json` | El workflow entero, tal como lo exporta n8n |
+
+Las 07:00 y no las 08:00 a proposito: si el crawl ha fallado, conviene
+saberlo **antes** de que salgan los otros dos correos, que irian con datos
+incompletos sin decirlo.
 
 ## El email (semanal)
 

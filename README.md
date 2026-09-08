@@ -300,6 +300,11 @@ Que el aviso viva entero en n8n significa que a quien se avisa, cada cuanto
 y con que aspecto se cambia desde su interfaz, sin tocar este repo ni
 redesplegar.
 
+Ademas hay un tercer correo, el **aviso de fallos del crawl**: cada manana a
+las 07:00 n8n mira si el crawl de la noche dejo errores, si alguna tienda no
+dio ni una lectura o si alguna la dio a medias, y solo entonces escribe a
+`tech@fitnesstech.es`. Si todo fue bien, no manda nada.
+
 > Hasta el 2026-09-04 el crawler llamaba ademas a un webhook
 > (`N8N_WEBHOOK_URL`) que nunca llego a existir en n8n: el aviso se habia
 > rediseñado como el workflow semanal de arriba y la llamada se quedo sin

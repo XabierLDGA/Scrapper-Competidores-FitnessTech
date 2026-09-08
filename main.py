@@ -116,7 +116,18 @@ async def main() -> dict:
             try:
                 raw_products, source = await crawl_competitor_products(crawler, competitor)
                 if not raw_products:
+                    # Un catalogo vacio no lanza excepcion, asi que hasta el
+                    # 2026-09-08 este caso se quedaba solo en el log: ni
+                    # engrosaba `errors` ni llegaba a `crawl_errors`, y es el
+                    # fallo mas tipico de un scraper -bloqueo, HTML cambiado,
+                    # tienda caida-. Ahora se registra para que el aviso de
+                    # salud lo vea. El `continue` sigue igual de importante:
+                    # sin el, mark_missing_products_removed daria por
+                    # retirado el catalogo entero de la tienda.
                     logger.warning("  No se pudieron obtener productos")
+                    errors.append(competitor["name"])
+                    db.log_crawl_error(competitor["name"],
+                                       "El catalogo se descargo vacio: 0 productos")
                     continue
 
                 logger.info(f"  {len(raw_products)} productos descargados ({source})")
