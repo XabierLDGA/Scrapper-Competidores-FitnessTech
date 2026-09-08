@@ -1,4 +1,10 @@
-const rows = $input.all().map(i => i.json);
+// El filtro por `tipo` no es paranoia: el nodo SQL lleva *Always Output
+// Data*, y con esa opcion, cuando la consulta no devuelve filas, emite un
+// item vacio ({}) en vez de nada. Ese item es justo lo que hace que este
+// nodo llegue a ejecutarse los dias sin novedad -n8n se salta los nodos que
+// no reciben ningun item, asi que sin el la cadena se paraba en el SQL y no
+// salia correo-, pero hay que descartarlo o contaria como un cambio.
+const rows = $input.all().map(i => i.json).filter(r => r && r.tipo);
 const hayCambios = rows.length > 0;
 
 // ---------------------------------------------------------------------------
