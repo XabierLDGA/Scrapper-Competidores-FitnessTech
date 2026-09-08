@@ -80,8 +80,18 @@ class Database:
 
     def insert_snapshot(self, product_id: int, price: float, price_original: float,
                          currency: str, country: str, available: bool, shipping_text: str):
-        """Inserta el snapshot de hoy. Si ya existe uno para hoy (se ha
-        corrido el crawler dos veces), se ignora en silencio."""
+        """Guarda la lectura de hoy. Solo hay una fila por producto y dia
+        (`unique_snapshot`), asi que un segundo crawl del mismo dia PISA la
+        del primero: manda siempre la ultima lectura.
+
+        Antes se descartaba en silencio, y eso duplicaba eventos en cuanto
+        se crawleaba dos veces el mismo dia. El caso real: el 2026-09-07 la
+        Bionic Bike XL de Titanium subio de 1.999 a 2.195 EUR; la pasada de
+        las 07:24 lo detecto y creo el evento, pero el snapshot se quedo en
+        1.999, asi que la de las 14:10 volvio a comparar contra 1.999, vio
+        2.195 y creo el evento OTRA VEZ. El mismo cambio contado dos veces
+        en el panel y en el correo. Con la pasada de las 13:00 fija eso
+        pasaria a diario."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             try:
@@ -89,13 +99,15 @@ class Database:
                     INSERT INTO product_snapshots
                     (product_id, captured_at, price, price_original, currency, country, available, shipping_text)
                     VALUES (%s, CURDATE(), %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        price = VALUES(price),
+                        price_original = VALUES(price_original),
+                        currency = VALUES(currency),
+                        country = VALUES(country),
+                        available = VALUES(available),
+                        shipping_text = VALUES(shipping_text)
                 """, (product_id, price, price_original, currency, country, available, shipping_text))
                 conn.commit()
-            except mysql.connector.Error as err:
-                if err.errno == MYSQL_ERR_DUPLICATE_ENTRY:
-                    logger.debug(f"Snapshot ya existe hoy para producto {product_id}")
-                else:
-                    raise
             finally:
                 cursor.close()
 

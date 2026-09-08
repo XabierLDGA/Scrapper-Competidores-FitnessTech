@@ -16,7 +16,9 @@
                 "field": "weeks",
                 "triggerAtDay": [
                   1
-                ]
+                ],
+                "triggerAtHour": 8,
+                "triggerAtMinute": 30
               }
             ]
           }

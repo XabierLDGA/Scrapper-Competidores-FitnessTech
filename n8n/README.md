@@ -10,7 +10,7 @@ comparativa contra Titanium.
 
 ## `notificacion-semanal`
 
-Cada lunes consulta el MySQL compartido, arma un email con los cambios de la
+Cada lunes a las 08:30 consulta el MySQL compartido, arma un email con los cambios de la
 competencia de los ultimos 7 dias y lo manda a la lista de avisos
 (direccion, marketing, marketplace y tech: diez buzones internos).
 
@@ -21,7 +21,7 @@ consulta solo traia altas y precios, asi que el correo se dejaba fuera el
 stock y las bajas aunque el crawler si las detectaba.
 
 ```
-Schedule Trigger (semanal, lunes)
+Schedule Trigger (semanal, lunes 08:30)
   -> Execute a SQL query   (los cuatro tipos de cambio de 7 dias, en cuatro
   |                         ramas UNION, excluyendo las tiendas propias)
   -> Code in JavaScript    (arma el HTML del email)
@@ -39,7 +39,7 @@ secretos siguen solo dentro de n8n.
 
 ## `comparativa-titanium-diaria`
 
-Cada manana a las 07:00 mira si Titanium ha movido algo en los 67 productos
+Cada manana a las 08:00 mira si Titanium ha movido algo en los 67 productos
 que producto ha emparejado con los nuestros (`titanium_pairs`, que puebla
 `import_comparativa.py`). **Manda correo haya novedad o no**: los dias
 tranquilos, que son casi todos, llega una version corta que dice que se ha
@@ -51,12 +51,19 @@ Lo que lo distingue del semanal es que no cuenta el cambio, cuenta el
 encima". Ese vuelco es lo accionable para producto, y es la razon de que sea
 un correo aparte y no un bloque mas en el de los lunes.
 
-Las 07:00 y no antes: el crawl arranca a las 03:00 y ha llegado a tardar doce
+Las 08:00 y no antes: el crawl arranca a las 03:00 y ha llegado a tardar doce
 minutos. El contenedor va en `Europe/Madrid` (`TZ` y `GENERIC_TIMEZONE`), asi
-que son las 07:00 de aqui sin conversion de por medio.
+que son las 08:00 de aqui sin conversion de por medio.
+
+Y las 08:00 y no las 03:15, aunque el crawl acabe mucho antes: el correo se
+lee cuando alguien abre el buzon, no cuando estan los datos. Por eso el
+semanal salio de las 00:00 del lunes -llegaba de madrugada, y encima tres
+horas ANTES del crawl de ese mismo lunes, con datos hasta el domingo- y pasa
+a las 08:30, media hora despues del diario para que el lunes no lleguen los
+dos de golpe.
 
 ```
-Schedule Trigger (diario, 07:00)
+Schedule Trigger (diario, 08:00)
   -> Execute a SQL query   (precio, stock y bajas de 24 h, restringidos por
   |                         JOIN a titanium_pairs; trae ademas nuestro precio
   |                         vigente por subconsulta, para calcular la posicion)

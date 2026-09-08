@@ -173,8 +173,9 @@ Esto levanta 3 servicios:
   para esta primera version; si vas a exponerlo en un VPS con IP publica,
   considera ponerlo detras de una VPN (ej. Tailscale) o restringir el
   puerto por firewall antes de abrirlo a internet.
-- **`crawler`**: ejecuta el crawl completo una vez al dia (06:00 UTC, ver
-  `scheduler.py`) sin depender de cron del host ni de GitHub Actions — por
+- **`crawler`**: ejecuta el crawl completo dos veces al dia (03:00 y 13:00
+  de Europe/Madrid, ver `scheduler.py`) sin depender de cron del host ni de
+  GitHub Actions — por
   eso ya no existe `daily_crawl.yml`, este servicio lo sustituye y no
   necesita que la BD sea alcanzable desde internet (todo corre en la misma
   red interna de Docker).
@@ -260,10 +261,14 @@ docker compose down -v    # borra tambien la base de datos
   contenedor de MySQL no publica el 3306. Al aplicar el SQL, este imprime que
   emparejamientos no resuelven contra el catalogo, que es lo que hay que
   devolverle a producto.
-- `scheduler.py` — Ejecuta el crawl diario dentro del contenedor `crawler`
-  (bucle Python que calcula cuanto falta para las 03:00 de Europe/Madrid y
-  espera, en vez de un demonio cron dentro de la imagen). La zona horaria,
-  no una hora UTC fija, para que siga el cambio de verano/invierno.
+- `scheduler.py` — Ejecuta el crawl dentro del contenedor `crawler` (bucle
+  Python que calcula cuanto falta para la siguiente de las horas de
+  `CRAWL_HOURS_LOCAL` -03:00 y 13:00 de Europe/Madrid- y espera, en vez de un
+  demonio cron dentro de la imagen). La zona horaria, no una hora UTC fija,
+  para que siga el cambio de verano/invierno. La pasada de mediodia existe
+  para no esperar al dia siguiente a ver un cambio de precio de por la
+  manana; exige que `insert_snapshot` pise la lectura del dia, o el mismo
+  cambio se contaria dos veces.
 - `Dockerfile` + `docker-compose.yml` — Empaquetado para desplegar en un
   VPS o servidor propio. Una sola imagen para `dashboard` y `crawler`
   (ambos necesitan Playwright/Chromium: el boton "Lanzar crawl ahora" del
