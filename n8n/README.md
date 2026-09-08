@@ -11,7 +11,8 @@ comparativa contra Titanium.
 ## `notificacion-semanal`
 
 Cada lunes consulta el MySQL compartido, arma un email con los cambios de la
-competencia de los ultimos 7 dias y lo manda a `tech@fitnesstech.es`.
+competencia de los ultimos 7 dias y lo manda a la lista de avisos
+(direccion, marketing, marketplace y tech: ocho buzones internos).
 
 Cuenta los **cuatro tipos** de cambio -altas de catalogo, cambios de precio,
 entradas y salidas de stock y bajas de catalogo-, los mismos que la pestana
