@@ -151,9 +151,19 @@ verdad ha encogido dejaria de avisar sola en una semana, en vez de avisar
 para siempre. Las tiendas sin historial quedan fuera, o una recien anadida
 avisaria su primer dia.
 
+**La consulta del nodo va sin los comentarios.** Los `.sql` de esta carpeta
+son la copia legible, con su explicacion delante; lo que se pega en el nodo
+empieza directamente por `SELECT`. No es cosmetica: el nodo MySQL de n8n
+mira el principio del texto para decidir si la consulta devuelve filas, y
+con `--` por delante no la reconoce como SELECT, la ejecuta igual y devuelve
+`{success: true}` en vez de los datos. Paso el 2026-09-09 y salio un correo
+diciendo que el crawl no habia corrido cuando habia corrido perfectamente.
+El nodo *Code* filtra ahora por `tipo`, asi que una entrada que no entiende
+no dispara ningun aviso.
+
 | Fichero | Que es |
 | --- | --- |
-| `salud-crawl.sql` | La consulta del nodo *Execute a SQL query* |
+| `salud-crawl.sql` | La consulta, comentada. En el nodo va sin los comentarios |
 | `salud-crawl-email.js` | El codigo del nodo *Code in JavaScript* |
 | `salud-crawl.workflow.json` | El workflow entero, tal como lo exporta n8n |
 

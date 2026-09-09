@@ -1,5 +1,3 @@
-const filas = $input.all().map(i => i.json);
-
 // ---------------------------------------------------------------------------
 // El aviso de fallos del crawl. Va solo a tech@: no es una noticia de
 // mercado como los otros dos correos, es una averia que hay que arreglar.
@@ -11,6 +9,16 @@ const filas = $input.all().map(i => i.json);
 // Mismo sistema visual que el panel en tema claro, con una diferencia: aqui
 // el rojo no es "la competencia ha bajado el precio", es "esto esta roto".
 // ---------------------------------------------------------------------------
+// Solo se hace caso a las filas cuyo `tipo` es uno de los que produce la
+// consulta. No es celo: el 2026-09-09 el nodo SQL devolvio {success:true}
+// en vez de las filas -la consulta llevaba comentarios delante y n8n no la
+// reconocio como SELECT-, y este codigo se creyo que ese objeto era un
+// problema mas. Salio un correo diciendo que el crawl no habia corrido
+// cuando habia corrido perfectamente. Con este filtro, una entrada que no
+// entiende no dispara nada.
+const TIPOS = ['error', 'sin_lecturas', 'pocas_lecturas'];
+const filas = $input.all().map(i => i.json).filter(f => f && typeof f === 'object');
+
 const BG = '#f4f6f6';
 const SURF = '#ffffff';
 const SURF2 = '#fafbfb';
@@ -39,16 +47,17 @@ const esc = s => String(s == null ? '' : s)
 
 const miles = v => String(Number(v) || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-// La fila `resumen` viene siempre; el resto son los problemas de verdad.
-const resumen = filas.find(f => f.tipo === 'resumen') || { hoy: 0, normal: 0 };
-const problemas = filas.filter(f => f.tipo !== 'resumen');
+// La fila `resumen` deberia venir siempre; el resto son los problemas.
+const resumen = filas.find(f => f.tipo === 'resumen') || null;
+const problemas = filas.filter(f => TIPOS.indexOf(f.tipo) !== -1);
 
 if (!problemas.length) return [{ json: { skip: true } }];
 
 // Ninguna lectura en toda la noche no es "una tienda caida", es que el crawl
 // no ha llegado a correr: contenedor parado, MySQL inalcanzable o la maquina
 // entera. Merece otro titular, porque lo que hay que mirar es otra cosa.
-const nadaEnAbsoluto = Number(resumen.hoy) === 0;
+// Sin fila `resumen` no se puede afirmar eso, asi que no se afirma.
+const nadaEnAbsoluto = resumen !== null && Number(resumen.hoy) === 0;
 
 function pildora(bg, ink, texto) {
   let s = '<span style="' + SANS + 'display:inline-block;background:' + bg + ';color:' + ink + ';';
@@ -110,8 +119,10 @@ h += '</td></tr>';
 
 h += '<tr><td style="padding:18px 22px 4px;">';
 h += '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>';
-h += cifra('Lecturas de hoy', miles(resumen.hoy) + ' <span style="font-size:13px;color:' + INK3 + ';">de '
-  + miles(resumen.normal) + '</span>', nadaEnAbsoluto ? ROJO : INK);
+h += cifra('Lecturas de hoy', resumen
+  ? miles(resumen.hoy) + ' <span style="font-size:13px;color:' + INK3 + ';">de '
+    + miles(resumen.normal) + '</span>'
+  : '&mdash;', nadaEnAbsoluto ? ROJO : INK);
 h += cifra('Tiendas afectadas', tiendas.length);
 h += '</tr></table></td></tr>';
 
