@@ -762,14 +762,21 @@ input, button { font: inherit; }
 }
 .vs-delta b { display: block; font-weight: 500; font-size: 0.813rem; }
 .vs-delta span { display: block; font-size: 0.719rem; padding-top: 2px; }
-/* Aqui el color va por el SIGNO del numero, no por el semaforo comercial del
-   resto del panel: verde el positivo, rojo el negativo, que es como se lee
-   una cifra con signo. Va a proposito al reves que las pildoras de la
-   bandeja, donde una bajada de precio de la competencia se pinta en rojo.
-   Ojo a lo que significa: verde aqui es que somos MAS caros que ellos.
-   Decision del usuario; no lo "arregles". */
-.vs-delta--positivo { color: var(--down-ink); }  /* --down-* es la rampa verde */
-.vs-delta--negativo { color: var(--up-ink); }    /* --up-* es la rampa roja */
+/* Aqui el color va por la lectura comercial, no por el signo del numero:
+   verde cuando la diferencia sale negativa -somos mas baratos que ellos- y
+   rojo cuando sale positiva -somos mas caros-. Asi el verde siempre es la
+   buena noticia, que es como se mira esta pantalla.
+
+   Invertido a peticion del usuario el 2026-09-11. Hasta entonces iba por el
+   signo (verde el positivo), y el efecto era que salir MAS caro que Titanium
+   se pintaba en verde. Si te encuentras este bloque y te parece del reves,
+   no lo toques sin preguntar: es deliberado y ya se ha cambiado una vez.
+
+   Solo vale para esta pantalla. Las pildoras de la bandeja siguen su regla,
+   que habla del movimiento del precio ajeno y no de quien es mas barato:
+   --up-* (roja) es que un precio ha subido. */
+.vs-delta--positivo { color: var(--up-ink); }    /* rampa roja: somos mas caros */
+.vs-delta--negativo { color: var(--down-ink); }  /* rampa verde: somos mas baratos */
 
 /* ---------- 11  Pantalla estrecha ---------------------------------------- */
 
