@@ -534,3 +534,88 @@ async def test_crawl_magento_aplica_el_tamano_de_pagina_desde_la_categoria_sigui
     assert {p["sku"] for p in products} == {"SKU-1", "SKU-2", "SKU-3"}
     assert "https://example.com/cat-a?p=2" in pedidas
     assert "https://example.com/cat-a?p=2&product_list_limit=48" not in pedidas
+
+
+@pytest.mark.asyncio
+async def test_url_is_gone_confirma_la_baja_con_un_404(monkeypatch):
+    """Un 404 en la ficha es la unica senal fiable de que el producto ya no
+    esta: es lo que devuelven las 31 bajas legitimas comprobadas a mano."""
+    crawler = Crawler()
+
+    async def plano(url):
+        return 404
+
+    monkeypatch.setattr(crawler, "_status_plain", plano)
+
+    assert await crawler.url_is_gone("https://example.com/products/x") is True
+
+
+@pytest.mark.asyncio
+async def test_url_is_gone_desmiente_la_baja_si_la_ficha_responde(monkeypatch):
+    """El caso que motiva todo esto: el producto desaparecio del listado
+    pero su ficha sigue publicada, asi que no es una baja."""
+    crawler = Crawler()
+
+    async def plano(url):
+        return 200
+
+    monkeypatch.setattr(crawler, "_status_plain", plano)
+
+    assert await crawler.url_is_gone("https://example.com/products/x") is False
+
+
+@pytest.mark.asyncio
+async def test_url_is_gone_sube_a_navegador_si_cloudflare_bloquea(monkeypatch):
+    """Titanium responde 403 a httpx por huella TLS. Sin subir a navegador
+    la comprobacion seria siempre 'no se sabe' y sus bajas legitimas
+    (BS-S48, F-MR-CROSS, ambas 404 de verdad) no se marcarian nunca."""
+    crawler = Crawler()
+
+    async def bloqueado(url):
+        return 403
+
+    async def renderizado(url):
+        return 404
+
+    monkeypatch.setattr(crawler, "_status_plain", bloqueado)
+    monkeypatch.setattr(crawler, "_status_rendered", renderizado)
+
+    assert await crawler.url_is_gone("https://www.titaniumstrength.es/x.html") is True
+
+
+@pytest.mark.asyncio
+async def test_url_is_gone_no_concluye_si_la_tienda_falla(monkeypatch):
+    """Un 5xx o un timeout no dicen nada sobre el producto. Devolver None
+    (y no dar de baja) es deliberado: preferimos una baja tardia a una
+    falsa, que es la que ensucia el panel y el correo."""
+    crawler = Crawler()
+
+    async def caida(url):
+        return 503
+
+    async def tampoco(url):
+        return None
+
+    monkeypatch.setattr(crawler, "_status_plain", caida)
+    monkeypatch.setattr(crawler, "_status_rendered", tampoco)
+
+    assert await crawler.url_is_gone("https://example.com/products/x") is None
+
+
+@pytest.mark.asyncio
+async def test_url_is_gone_no_concluye_ante_un_redirect(monkeypatch):
+    """Shopify a veces redirige la ficha borrada a otra pagina. Un 301 no
+    distingue 'producto retirado' de 'handle renombrado', asi que no
+    concluye."""
+    crawler = Crawler()
+
+    async def redirige(url):
+        return 301
+
+    async def sin_navegador(url):
+        raise AssertionError("un redirect no justifica abrir Chromium")
+
+    monkeypatch.setattr(crawler, "_status_plain", redirige)
+    monkeypatch.setattr(crawler, "_status_rendered", sin_navegador)
+
+    assert await crawler.url_is_gone("https://example.com/products/x") is None

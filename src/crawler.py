@@ -323,6 +323,82 @@ class Crawler:
             except httpx.HTTPError:
                 return None
 
+    async def _status_plain(self, url: str) -> Optional[int]:
+        """Codigo HTTP de una URL por httpx, sin seguir redirecciones y sin
+        descargar el cuerpo. None si no se llego a hablar con el servidor."""
+        async with httpx.AsyncClient(timeout=self.timeout, headers=self.headers,
+                                      follow_redirects=False) as client:
+            try:
+                resp = await client.head(url)
+                # Algunas tiendas no implementan HEAD y contestan 405; ahi
+                # hay que preguntar con GET para saber si la ficha existe.
+                if resp.status_code == 405:
+                    resp = await client.get(url)
+                await asyncio.sleep(self.rate_limit)
+                return resp.status_code
+            except httpx.HTTPError as e:
+                logger.warning(f"No se pudo comprobar {url} por HTTP normal: {e}")
+                return None
+
+    async def _status_rendered(self, url: str) -> Optional[int]:
+        """Codigo HTTP de una URL abriendola con Chromium, para tiendas que
+        rechazan httpx por huella TLS."""
+        try:
+            browser = await self._ensure_browser()
+        except Exception as e:
+            logger.warning(f"No se pudo abrir el navegador para comprobar {url}: {e}")
+            return None
+
+        page = None
+        try:
+            page = await browser.new_page(user_agent=self.browser_user_agent)
+            response = await page.goto(
+                url, wait_until="domcontentloaded", timeout=self.timeout * 1000
+            )
+            await asyncio.sleep(self.rate_limit)
+            return response.status if response is not None else None
+        except Exception as e:
+            logger.warning(f"No se pudo comprobar {url} con navegador: {e}")
+            return None
+        finally:
+            if page is not None:
+                await page.close()
+
+    async def url_is_gone(self, url: str) -> Optional[bool]:
+        """Dice si la ficha de un producto ha dejado de existir.
+
+        True = 404/410, la ficha ya no esta. False = responde 2xx, sigue
+        publicada. None = no se ha podido averiguar.
+
+        Existe porque desaparecer del listado NO es lo mismo que estar de
+        baja, y confundirlos llenaba el panel de bajas falsas: variantes de
+        Shopify que se recrean con id nuevo al editar sus opciones (la
+        ficha ni se entera), y productos de Magento que se quedan sin
+        categoria navegable pero siguen publicados (EL-PL72 de Titanium,
+        agotado, ficha viva y visible en el buscador de la tienda).
+
+        Solo el 404/410 marca la baja: ante un 5xx, un timeout o una
+        redireccion se prefiere no concluir y reintentar en la vuelta
+        siguiente. Una baja tardia es barata; una falsa se cuela en el
+        panel y en el correo semanal.
+        """
+        status = await self._status_plain(url)
+        # 403 y 'ni contesta' son justo lo que devuelve una tienda detras de
+        # Cloudflare a httpx, no una pista sobre el producto: ahi si merece
+        # la pena pagar el navegador. El resto de codigos ya son respuesta
+        # de la tienda y no hace falta repetir la pregunta.
+        if status is None or status == 403:
+            status = await self._status_rendered(url)
+
+        if status is None:
+            return None
+        if status in (404, 410):
+            return True
+        if 200 <= status < 300:
+            return False
+        logger.info(f"Comprobacion no concluyente ({status}) para {url}")
+        return None
+
     def _best_page_size(self, html: str) -> Optional[str]:
         """El mayor tamano de pagina que ofrece el selector de la propia tienda.
 

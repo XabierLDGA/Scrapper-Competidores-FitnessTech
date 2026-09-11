@@ -180,25 +180,100 @@ class Database:
             finally:
                 cursor.close()
 
-    def mark_missing_products_removed(self, competitor_id: int):
-        """Marca como 'removed' los productos activos de un competidor que no
-        se han visto en el crawl de hoy (su last_seen no se actualizo hoy).
+    def mark_superseded_variants(self, competitor_id: int) -> int:
+        """Reclasifica como 'superseded' las variantes que han sido
+        reemplazadas: no se han visto hoy, pero otra variante de SU MISMA
+        ficha si. Devuelve cuantas.
 
-        Se llama una vez por competidor, y solo tras procesar con exito su
-        catalogo, para no marcar productos como eliminados por un fallo
-        parcial del crawl.
+        En Shopify seguimos una fila por VARIANTE, pero la url que guardamos
+        es la del producto. Al editar las opciones de un producto, Shopify
+        destruye la variante y crea otra con id y sku nuevos, asi que la
+        vieja desaparece del products.json aunque la ficha no se haya
+        movido. Caso real: `set-barra-olimpica-y-2-mancuernas-...` paso de
+        FT-28127..30 a FT-29089..96 al renumerar los pesos de 30/60/90/120 kg
+        a 27/62/92/122 kg. Antes eso se apuntaba como 4 bajas y 4 altas de un
+        producto que nunca se movio.
+
+        Ni 'removed' ni 'active': de baja no esta, porque la ficha sigue
+        publicada y el panel no debe anunciarla; pero dejarla 'active' seria
+        peor, porque esa variante ya no existe, nunca volvera a tener
+        snapshot y se quedaria de fantasma inflando el catalogo. El estado
+        propio las saca de las dos consultas -catalogo y feed de bajas- sin
+        mentir en ninguna.
+
+        El hermano tiene que haberse visto HOY, no solo estar activo: si no,
+        dos variantes que desaparecen a la vez se taparian la una a la otra
+        y no se daria de baja ninguna.
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             try:
+                # El hermano va por tabla derivada y no por subconsulta:
+                # MySQL no deja leer en un WHERE la misma tabla que se esta
+                # actualizando ("You can't specify target table for update").
                 cursor.execute("""
-                    UPDATE products
-                    SET status = 'removed', removed_at = NOW()
-                    WHERE competitor_id = %s AND status = 'active' AND last_seen < CURDATE()
-                """, (competitor_id,))
+                    UPDATE products p
+                    JOIN (
+                        SELECT DISTINCT competitor_id, url
+                        FROM products
+                        WHERE competitor_id = %s
+                          AND status = 'active'
+                          AND last_seen >= CURDATE()
+                    ) vistos_hoy
+                      ON vistos_hoy.competitor_id = p.competitor_id
+                     AND vistos_hoy.url = p.url
+                    SET p.status = 'superseded', p.removed_at = NOW()
+                    WHERE p.competitor_id = %s
+                      AND p.status = 'active'
+                      AND p.last_seen < CURDATE()
+                """, (competitor_id, competitor_id))
                 conn.commit()
                 if cursor.rowcount:
-                    logger.info(f"{cursor.rowcount} productos marcados como eliminados")
+                    logger.info(f"{cursor.rowcount} variantes reemplazadas (no son bajas)")
+                return cursor.rowcount
+            finally:
+                cursor.close()
+
+    def get_removal_candidates(self, competitor_id: int) -> list[dict]:
+        """Productos que hoy no han aparecido en el catalogo del competidor.
+
+        Es una lista de sospechosos, no de bajas: quien decide es la
+        comprobacion de la ficha en `main.retire_missing_products`. Se llama
+        despues de `mark_superseded_variants`, asi que las variantes
+        reemplazadas ya se han apartado y no gastan una comprobacion.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                cursor.execute("""
+                    SELECT id, external_id, url, title
+                    FROM products
+                    WHERE competitor_id = %s
+                      AND status = 'active'
+                      AND last_seen < CURDATE()
+                """, (competitor_id,))
+                return cursor.fetchall()
+            finally:
+                cursor.close()
+
+    def mark_products_removed(self, product_ids: list[int]) -> None:
+        """Marca como 'removed' los productos indicados, que son los que han
+        pasado la comprobacion de ficha (404/410). Antes esto era un UPDATE
+        a ciegas sobre todo lo no visto hoy, y de ahi salian las bajas
+        falsas."""
+        if not product_ids:
+            return
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                marcadores = ", ".join(["%s"] * len(product_ids))
+                cursor.execute(f"""
+                    UPDATE products
+                    SET status = 'removed', removed_at = NOW()
+                    WHERE id IN ({marcadores})
+                """, tuple(product_ids))
+                conn.commit()
+                logger.info(f"{cursor.rowcount} productos marcados como eliminados")
             finally:
                 cursor.close()
 

@@ -87,6 +87,41 @@ async def process_product(db: Database, detector: ChangeDetector,
         )
 
 
+async def retire_missing_products(db: Database, crawler: Crawler, competitor: dict) -> None:
+    """Da de baja los productos del competidor que hayan desaparecido de
+    verdad, entrando a comprobar la ficha de cada sospechoso.
+
+    Antes bastaba con no aparecer en el catalogo del dia, y eso llenaba el
+    panel de bajas falsas: 60 de las 97 registradas hasta el 2026-09-11 lo
+    eran (57 variantes reemplazadas y 3 fichas vivas). Desaparecer del listado tiene causas que no son una baja -una
+    variante de Shopify recreada con id nuevo, un producto de Magento que se
+    queda sin categoria navegable, una pagina de la paginacion que falla y
+    trunca el catalogo en silencio-, y todas se distinguen mirando la ficha:
+    si responde, el producto sigue ahi.
+
+    `mark_superseded_variants` aparta antes a las variantes reemplazadas, que
+    son el grueso del ruido, asi que aqui suelen llegar muy pocos y el coste
+    en peticiones es despreciable.
+    """
+    db.mark_superseded_variants(competitor["id"])
+    candidates = db.get_removal_candidates(competitor["id"])
+    if not candidates:
+        return
+
+    logger.info(f"  {len(candidates)} productos no vistos hoy, comprobando sus fichas")
+    confirmed = []
+    for candidate in candidates:
+        gone = await crawler.url_is_gone(candidate["url"])
+        if gone:
+            logger.info(f"    [baja] {(candidate['title'] or '')[:60]}")
+            confirmed.append(candidate["id"])
+        else:
+            motivo = "la ficha sigue publicada" if gone is False else "no se pudo comprobar"
+            logger.info(f"    [sin baja] {(candidate['title'] or '')[:60]}: {motivo}")
+
+    db.mark_products_removed(confirmed)
+
+
 async def main() -> dict:
     db = Database(
         host=os.getenv("DB_HOST", "localhost"),
@@ -140,10 +175,10 @@ async def main() -> dict:
                     except Exception:
                         logger.exception(f"    Error procesando producto {product.get('title', 'Unknown')}")
 
-                # Solo se marcan eliminados si el catalogo se descargo con exito
+                # Solo se buscan bajas si el catalogo se descargo con exito
                 # (raw_products no vacio, arriba); asi un fallo parcial del
                 # crawler no borra productos que en realidad siguen a la venta.
-                db.mark_missing_products_removed(competitor["id"])
+                await retire_missing_products(db, crawler, competitor)
 
             except Exception as exc:
                 logger.exception(f"  Error crawleando {competitor['name']}")
