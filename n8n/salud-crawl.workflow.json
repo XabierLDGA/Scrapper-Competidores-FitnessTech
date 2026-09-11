@@ -95,7 +95,7 @@
       },
       {
         "parameters": {
-          "fromEmail": "xlopez@fitnesstech.es",
+          "fromEmail": "tech@fitnesstech.es",
           "toEmail": "tech@fitnesstech.es",
           "subject": "={{ $json.asunto }}",
           "html": "={{ $json.html }}",
@@ -112,8 +112,8 @@
         "webhookId": "2f9fcd7b-73a3-47a4-9ef3-2c3f91cef1e5",
         "credentials": {
           "smtp": {
-            "id": "vHmUN0MVi40cidD7",
-            "name": "SMTP account 2"
+            "id": "7CyJqtoDKBotUtca",
+            "name": "SMTP tech"
           }
         }
       }

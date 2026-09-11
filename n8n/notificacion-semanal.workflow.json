@@ -102,7 +102,7 @@
       },
       {
         "parameters": {
-          "fromEmail": "xlopez@fitnesstech.es",
+          "fromEmail": "tech@fitnesstech.es",
           "toEmail": "jose.gimenez@fitnesstech.es,dbelchi@fitnesstech.es,acervera@fitnesstech.es,aperez@fitnesstech.es,jgomez@fitnesstech.es,vsantos@fitnesstech.es,xlopez@fitnesstech.es,marketing@fitnesstech.es,marketplace@fitnesstech.es,tech@fitnesstech.es",
           "subject": "=Competencia: {{ $json.total }} cambios esta semana ({{ $json.rango }})",
           "html": "={{ $json.html }}",
@@ -119,8 +119,8 @@
         "webhookId": "6943a9a3-0121-4012-b551-faefeb5f88c9",
         "credentials": {
           "smtp": {
-            "id": "vHmUN0MVi40cidD7",
-            "name": "SMTP account 2"
+            "id": "7CyJqtoDKBotUtca",
+            "name": "SMTP tech"
           }
         }
       }
