@@ -741,6 +741,23 @@ input, button { font: inherit; }
   color: var(--ink);
 }
 
+/* La maquina esta publicada y tiene precio, pero es precio de PREVENTA: en
+   la tienda se distingue por una P delante del SKU (SE-28780 -> PSE-28780) y
+   en la tabla no se distinguiria de nada si no se dijera. Va con la rampa
+   --new-*, la de "recien llegado", que es justo lo que es. */
+.vs-preventa {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.656rem;
+  font-weight: 500;
+  line-height: 16px;
+  background: var(--new-bg);
+  color: var(--new-ink);
+}
+
 .vs-meta { font-size: 0.719rem; color: var(--ink-2); }
 .vs-nota { font-size: 0.75rem; color: var(--ink-3); font-style: italic; }
 .vs-obs { font-size: 0.719rem; color: var(--ink-3); }

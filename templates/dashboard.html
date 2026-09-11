@@ -363,7 +363,9 @@
                       </span>
                       <span class="vs-sku">{{ p.ft_sku }}</span>
                       {% if p.ft_price is not none %}
-                      <span class="vs-precio">{{ p.ft_price | eur }}</span>
+                      <span class="vs-precio">{{ p.ft_price | eur }}
+                        {%- if p.ft_preventa %} <b class="vs-preventa">En preventa</b>{% endif -%}
+                      </span>
                       {% else %}
                       <span class="vs-nota">Sin publicar en la tienda</span>
                       {% endif %}

@@ -271,6 +271,36 @@ TITANIUM = "Titanium Strength"
 SIN_EQUIVALENTE = "Sin equivalente"
 
 
+def _formas_del_sku(sku: str) -> tuple[str, ...]:
+    """El SKU tal cual y su pareja de preventa, en orden de preferencia.
+
+    Una maquina en preventa se publica con una P delante de su SKU normal
+    (SE-28780 pasa a PSE-28780) y la pierde al salir. O sea que el prefijo
+    dice en que fase de venta esta la maquina, no que maquina es, y el
+    emparejamiento con Titanium habla de maquinas. Sin esto, el Excel se
+    queda con el prefijo de cuando se escribio y la fila deja de comparar en
+    silencio en cuanto la maquina cambia de fase, anunciandose ademas como
+    "sin publicar" cuando si lo esta. Paso con SE-28780.
+
+    Se busca primero la forma exacta y solo despues la otra, y no se toca el
+    indice del catalogo, para que un SKU que empieza por P sin ser preventa
+    no pueda acabar casando con otra cosa: hay unos cuantos (PA-, PAO-, PE-,
+    PAV...). Por eso tambien esto se limita a las selectorizadas, que son
+    las unicas que entran en esta pantalla.
+    """
+    if sku.startswith("PSE-"):
+        return (sku, sku[1:])
+    if sku.startswith("SE-"):
+        return (sku, "P" + sku)
+    return (sku,)
+
+
+def _en_preventa(sku: str) -> bool:
+    """Si el SKU publicado es el de preventa. Ver `_formas_del_sku` para por
+    que solo se mira PSE- y no cualquier P inicial."""
+    return sku.startswith("PSE-")
+
+
 def build_titanium_comparison(pairs: list[dict], catalog: list[dict]) -> list[dict]:
     """Los pares de producto resueltos contra el catalogo vigente, agrupados
     por gama y en el orden en que los dejo producto.
@@ -285,7 +315,8 @@ def build_titanium_comparison(pairs: list[dict], catalog: list[dict]) -> list[di
 
     gamas: list[dict] = []
     for pair in pairs:
-        nuestro = por_sku.get(pair["ft_sku"])
+        nuestro = next((por_sku[forma] for forma in _formas_del_sku(pair["ft_sku"])
+                        if forma in por_sku), None)
         suyo = por_url.get(pair["titanium_url"]) if pair.get("titanium_url") else None
 
         # El orden importa. `sin_equivalente` primero porque es un juicio de
@@ -318,7 +349,10 @@ def build_titanium_comparison(pairs: list[dict], catalog: list[dict]) -> list[di
             # llama "Femoral Sentado" a lo que la web titula "Cuadriceps y
             # femoral | Maquina selectorizada dual - Compact Series", y en una
             # tabla de comparacion mandan los suyos.
-            "ft_sku": pair["ft_sku"],
+            # El SKU que se enseña es el PUBLICADO, no el del Excel: es el
+            # que encontraran si lo buscan, y ademas delata la preventa.
+            "ft_sku": nuestro["sku"] if nuestro else pair["ft_sku"],
+            "ft_preventa": bool(nuestro) and _en_preventa(nuestro["sku"]),
             "ft_title": pair["ft_title"],
             "ft_url": nuestro["url"] if nuestro else None,
             "ft_price": nuestro["price"] if nuestro else None,

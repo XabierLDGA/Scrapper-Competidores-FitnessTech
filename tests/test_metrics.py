@@ -600,3 +600,68 @@ def test_metricas_cuentan_solo_los_cambios_de_titanium_en_productos_emparejados(
     ]
 
     assert titanium_metrics(gamas, feed)["cambios_semana"] == 1
+
+
+# ---------- preventa: el prefijo P del SKU ----------
+
+def test_comparativa_casa_aunque_la_maquina_haya_entrado_en_preventa():
+    """La P delante del SKU significa preventa. Una maquina que entra en
+    preventa pasa de SE- a PSE- en la tienda, pero el Excel sigue diciendo
+    SE-, y hasta ahora el par dejaba de comparar en silencio y se anunciaba
+    como 'sin publicar'. Caso real: SE-28780."""
+    gamas = build_titanium_comparison(
+        [_par(ft_sku="SE-28780")],
+        [_nuestro(sku="PSE-28780", price=1599.0), _suyo(price=1395.0)])
+    par = gamas[0]["pares"][0]
+
+    assert par["estado"] == "ok"
+    assert par["ft_price"] == 1599.0
+    assert par["delta"] == 204.0
+
+
+def test_comparativa_casa_aunque_la_maquina_haya_salido_de_preventa():
+    """El reves del caso anterior, que es el que se comera 17 filas segun
+    vayan saliendo de preventa: el Excel dice PSE- y la tienda ya dice SE-."""
+    gamas = build_titanium_comparison(
+        [_par(ft_sku="PSE-28568")],
+        [_nuestro(sku="SE-28568", price=1699.0), _suyo(price=1895.0)])
+
+    assert gamas[0]["pares"][0]["estado"] == "ok"
+    assert gamas[0]["pares"][0]["delta"] == -196.0
+
+
+def test_comparativa_marca_la_fila_que_esta_en_preventa():
+    """Comparar el precio de preventa esta bien, pero hay que decirlo: si no,
+    en la tabla no se distingue de un precio normal."""
+    gamas = build_titanium_comparison(
+        [_par(ft_sku="SE-28780")],
+        [_nuestro(sku="PSE-28780"), _suyo()])
+
+    assert gamas[0]["pares"][0]["ft_preventa"] is True
+
+
+def test_comparativa_no_marca_preventa_una_fila_normal():
+    gamas = build_titanium_comparison([_par(ft_sku="SE-1")], [_nuestro(), _suyo()])
+
+    assert gamas[0]["pares"][0]["ft_preventa"] is False
+
+
+def test_comparativa_usa_el_sku_real_de_la_tienda_cuando_difiere():
+    """En la tabla y en el enlace manda el SKU que esta publicado, que es el
+    que encontraran si lo buscan; el del Excel puede estar desfasado."""
+    gamas = build_titanium_comparison(
+        [_par(ft_sku="SE-28780")],
+        [_nuestro(sku="PSE-28780"), _suyo()])
+
+    assert gamas[0]["pares"][0]["ft_sku"] == "PSE-28780"
+
+
+def test_comparativa_sin_publicar_sigue_siendo_sin_publicar():
+    """Normalizar el prefijo no puede inventarse un par: si la maquina no
+    esta en la tienda ni como normal ni como preventa, sigue sin publicar.
+    Son las 19 filas de Advanced vs Black RX."""
+    gamas = build_titanium_comparison(
+        [_par(ft_sku="SE-28969")], [_nuestro(sku="SE-1"), _suyo()])
+
+    assert gamas[0]["pares"][0]["estado"] == "sin_publicar"
+    assert gamas[0]["pares"][0]["ft_preventa"] is False
